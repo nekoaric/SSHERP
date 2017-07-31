@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<sqlMap>
+	<typeAlias alias="dto"
+		type="org.eredlab.g4.ccl.datastructure.impl.BaseDto" />
+
+	<insert id="saveQCInfo" parameterClass="dto">
+		insert into BAS_QC_INFO ( seq_no,short_name,name,flag,opr_date,opr_id,state)
+		values(#seq_no#,#short_name#,#name#,#flag#,#opr_date#,#opr_id#,'0'
+		)
+	</insert>
+	<insert id="saveQCItem" parameterClass="dto">
+		insert into qc_item_list (
+		seq_no,qc_position,class,qc_item,parent_no,opr_date,opr_id,state)
+		values(SEQ_QC_ITEM_SEQ_NO.nextval,#qc_position#,#class#,#qc_item#,#parent_no#,#opr_date#,#opr_id#,'0'
+		)
+	</insert>
+	<insert id="saveQCItemFromB" parameterClass="dto">
+		insert into qc_item_list (
+		seq_no,qc_position,class,qc_item,parent_no,opr_date,opr_id,state)
+		values(SEQ_QC_ITEM_SEQ_NO.nextval,#qc_position#,#class#,#qc_item#,#parent_no#,#opr_date#,#opr_id#,'0'
+		)
+	</insert>
+
+	<select id="queryQCItemForManage" parameterClass="map"
+		resultClass="dto" remapResults="true">
+		select seq_no,qc_position,class,qc_item,
+		(select name from bas_qc_info where seq_no=qc_position) as qc_position_name,
+		(select name from bas_qc_info where seq_no=class) as class_name,
+		(select name from bas_qc_info where seq_no=qc_item) as qc_item_name,
+		parent_no,opr_date,opr_id,state
+		from qc_item_list a
+		<dynamic prepend="where">
+			<isNotEmpty prepend="AND" property="qc_position">
+				a.qc_position=#qc_position#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="class">
+				a.class=#class#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="qc_position_name">
+				a.qc_position in (select seq_no from bas_qc_info where name like '%$qc_position_name$%' and
+				flag='1')
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="class_name">
+				a.class in (select seq_no from bas_qc_info where name like '%$class_name$%' and
+				flag='3')
+			</isNotEmpty>
+		</dynamic>
+		order by seq_no asc
+	</select>
+	<select id="selectMaxSeqFromQCBaseInfo" resultClass="java.lang.String">
+		select Max(seq_no) from bas_qc_info
+	</select>
+	<select id="selectMaxSeqFromQCItem" resultClass="java.lang.String">
+		select SEQ_QC_ITEM_SEQ_NO.currval from dual
+	</select>
+
+
+	<!-- 查询QC位置信息 -->
+	<select id="queryQCPosition" parameterClass="dto" resultClass="dto"
+		remapResults="true">
+		select seq_no,short_name,name,flag,specific_id,opr_date,opr_id,state
+		from bas_qc_info
+		where flag = '1' and state = '0'
+	</select>
+	<!-- 查询样式信息 查询条件: qC位置 -->
+	<select id="queryClass4QcPosition" parameterClass="dto"
+		resultClass="dto" remapResults="true">
+		select seq_no,short_name,name,flag,specific_id,opr_date,opr_id,state
+		from bas_qc_info
+		where seq_no in (
+		select class from qc_item_list where qc_position = #qc_position#
+		)
+	</select>
+
+	<!-- 查询检查项 查询条件：qC位置 可选条件样式 -->
+	<select id="queryItem4QCPosition" parameterClass="dto"
+		resultClass="dto" remapResults="true">
+		select b.short_name,b.name,b.flag,b.specific_id,nvl(a.parent_no,-1)
+		parent_no,a.qc_item,a.seq_no,nvl(c.amount,0) amount
+		from
+		qc_item_list a left join bas_qc_info b on b.seq_no = a.qc_item
+		left join (select sum(amount) amount,order_batch_no,qc_item_no from
+		qc_num_list group by order_batch_no,qc_item_no)
+		c on c.qc_item_no = a.seq_no and c.order_batch_no = #batch_no#
+		where a.qc_position = #qc_position#
+		<isNotEmpty prepend="and" property="class">
+			a.class = #class#
+		</isNotEmpty>
+	</select>
+
+	<!-- 查询订单的批次号 订单号查询订单的批次号 -->
+	<select id="queryBatchNo4order" parameterClass="dto"
+		resultClass="dto" remapResults="true">
+		select batch_no, count(*) as num
+		from qc_order_info
+		where
+		batch_no in
+		(select batch_no from qc_order_info where order_id in ($ords$))
+		group by batch_no
+	</select>
+	<!-- 查询订单的批次号 最大数 -->
+	<select id="queryMaxBatchNo" parameterClass="dto" resultClass="java.lang.Integer"
+		remapResults="true">
+		select max(batch_no) from qc_order_info
+	</select>
+
+	<!-- 插入QC订单批次信息 -->
+	<insert id="insertQcOderInfo" parameterClass="dto">
+		insert into qc_order_info(seq_no,batch_no,order_id,opr_date,opr_id)
+		values (qc_order_info_seq.nextval,#batch_no#,#order_id#,#opr_date#,#opr_id#)
+	</insert>
+
+	<!-- QC数量 -->
+	<insert id="insertQcNumList" parameterClass="dto">
+		insert into qc_num_list(seq_no,qc_item_no,order_batch_no, amount, opr_date,
+		opr_id)
+		values (qc_num_list_seq.nextval,#qc_item_no#, #order_batch_no#, #amount#
+		,#opr_date#, #opr_id#)
+	</insert>
+
+
+	<select id="getQCInfoByDto" parameterClass="dto" resultClass="dto">
+		select name,flag,seq_no from bas_qc_info
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="name">
+				name=#name#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="flag">
+				flag=#flag#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="seq_no">
+				seq_no=#seq_no#
+			</isNotEmpty>
+		</dynamic>
+	</select>
+<!-- 获得父级检查项 -->
+	<select id="getPItemByDto" parameterClass="dto" resultClass="dto">
+		select * from qc_item_list 
+		where 
+				qc_position=#qc_position# 
+			and	qc_item=#parent_no# 
+			and	class=#class# 
+	</select>
+	<!-- 根据parent——no获得父级检查项信息 -->
+	<select id="getParentQCItemBySeq" resultClass="dto"
+		parameterClass="dto">
+		select * from bas_qc_info where seq_no = (select qc_item from qc_item_list
+		where seq_no =#parent_no# )
+	</select>
+	<!-- 流水记录查询 -->
+	<select id="queryQCScheList" parameterClass="dto" resultClass="dto" remapResults="true">
+		SELECT a.seq_no,a.order_batch_no,c.order_id,a.amount,a.opr_date,b.qc_position_name,b.class_name,
+		b.qc_item_name,b.parent_no
+		FROM
+		qc_num_list a
+		LEFT JOIN
+		(
+		SELECT a.seq_no,a.qc_position,a.class,a.qc_item,
+		(
+		SELECT name	FROM bas_qc_info WHERE 
+		seq_no=a.qc_position) AS qc_position_name,
+		(
+		SELECT name	FROM bas_qc_info WHERE seq_no=a.class) AS class_name,
+		(
+		SELECT name FROM bas_qc_info WHERE 
+		seq_no=a.qc_item) AS qc_item_name,a.parent_no,a.opr_date,a.opr_id,a.state
+		FROM
+		qc_item_list a ) b
+		ON a.qc_item_no = b.seq_no 
+		left join qc_order_info c
+		on a.order_batch_no=c.batch_no
+		<dynamic prepend="WHERE">
+			<isEqual prepend="and" property="fromFlag" compareValue="1"> <!-- fromFlag为1：查询条件来自详细查询 -->
+            c.order_id in ($prodords$)
+        	</isEqual>
+			<isNotEmpty prepend="AND" property="order_id">
+				c.order_id like '%$order_id$%'
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="qc_position">
+				qc_position=#qc_position#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="class">
+				class=#class#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="qc_position_name">
+				b.qc_position=(select seq_no from bas_qc_info where name like '%$qc_position_name$%' and
+				flag='1') 
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="class_name">
+				b.class=(select seq_no from bas_qc_info where name like '%$class_name$%' and
+				flag='3') 
+			</isNotEmpty>
+		</dynamic>
+		order by a.opr_date
+	</select>
+	<select id="getChildCount" parameterClass="Dto" resultClass="java.lang.Integer">
+		select count(*) from qc_item_list where parent_no=#seq_no#
+	</select>
+	<delete id="deleteQCItem" parameterClass="Dto">
+		delete from qc_item_list where seq_no=#seq_no#
+	</delete>
+	<select id="getNumInfoByItem" parameterClass="Dto" resultClass="java.lang.Integer">
+		select count(*) from qc_num_list where qc_item_no=#seq_no#
+	</select>
+	<delete id="deleteQCNumInfo" parameterClass="Dto">
+		delete from qc_num_list where seq_no=#seq_no#
+	</delete>
+	<select id="checkQCItemByDto" parameterClass="Dto" resultClass="java.lang.Integer">
+		select count(*) from qc_item_list where class=#class# and qc_item=#qc_item# and qc_position=#qc_position# 
+	<dynamic>
+			<isNotEmpty prepend="AND" property="parent_no">
+				parent_no=#parent_no#
+			</isNotEmpty>
+	</dynamic>
+	</select>
+	
+	<!-- 饼图查询 -->
+	<select id="queryQCPie" parameterClass="dto" resultClass="dto" remapResults="true">
+	select  b.order_id,sum(a.amount) as amount,d.class_name,d.qc_position_name,d.qc_item_name from qc_num_list a 
+		left join qc_order_info b on a.order_batch_no=b.batch_no 
+		left join qc_item_list c on c.seq_no=a.qc_item_no 
+		left join 
+		(SELECT a.seq_no,a.qc_position,a.class,a.qc_item,
+		(
+		SELECT name	FROM bas_qc_info WHERE 
+		seq_no=a.qc_position) AS qc_position_name,
+		(
+		SELECT name	FROM bas_qc_info WHERE seq_no=a.class) AS class_name,
+		(
+		SELECT name FROM bas_qc_info WHERE 
+		seq_no=a.qc_item) AS qc_item_name,a.parent_no,a.opr_date,a.opr_id,a.state
+		FROM
+		qc_item_list a where parent_no is null
+		) d on d.seq_no=a.qc_item_no 
+		where c.parent_no is null  
+		<dynamic >
+			<isNotEmpty	prepend="and" property="class_name">
+				d.class_name=#class_name# 
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="order_id">
+				b.order_id=#order_id# 
+			</isNotEmpty>
+		</dynamic>
+		group by a.qc_item_no ,b.order_id,d.class_name,d.qc_position_name,d.qc_item_name
+		
+	</select>
+	
+	<select id="getBasQCInfo" resultClass="dto" >
+		select name from bas_qc_info where flag='4'
+	</select>
+	
+</sqlMap>

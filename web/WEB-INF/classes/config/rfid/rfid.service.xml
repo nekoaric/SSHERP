@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="
+	http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+	http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-2.5.xsd
+	http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-2.5.xsd">
+    <!-- 日志路径信息 -->
+    <bean id="logRequestCollection" class="com.cnnct.listeners.LogRequestCollection"></bean>
+	<!-- 订单管理 -->
+	<bean id="ordBasInfoService" parent="baseTransactionProxyG4">
+		<property name="target">
+			<bean class="com.cnnct.rfid.service.impl.OrdBasInfoServiceImpl">
+				<property name="g4Dao" ref="g4Dao" />
+			</bean>
+		</property>
+	</bean>
+	
+	<!-- 生产通知单管理 -->
+	<bean id="prodOrdInfoService" parent="baseTransactionProxyG4">
+		<property name="target">
+			<bean class="com.cnnct.rfid.service.impl.ProdOrdInfoServiceImpl">
+				<property name="g4Dao" ref="g4Dao" />
+			</bean>
+		</property>
+	</bean>
+
+	<!-- 设备信息管理 -->
+	<bean id="devTrmInfoService" parent="baseTransactionProxyG4">
+		<property name="target">
+			<bean class="com.cnnct.rfid.service.impl.DevTrmInfoServiceImpl">
+				<property name="g4Dao" ref="g4Dao" />
+			</bean>
+		</property>
+	</bean>
+	<!-- 客户信息管理 -->
+	<bean id="custBasInfoService" parent="baseTransactionProxyG4">
+		<property name="target">
+			<bean class="com.cnnct.rfid.service.impl.CustBasInfoServiceImpl">
+				<property name="g4Dao" ref="g4Dao" />
+			</bean>
+		</property>
+	</bean>
+	<!-- 服装信息管理 -->
+	<bean id="clothBasInfoService" parent="baseTransactionProxyG4">
+		<property name="target">
+			<bean class="com.cnnct.rfid.service.impl.ClothBasInfoServiceImpl">
+				<property name="g4Dao" ref="g4Dao" />
+			</bean>
+		</property>
+	</bean>
+
+    <!--RFID维护-->
+    <bean id="epcBookListService" parent="baseTransactionProxyG4">
+        <property name="target">
+            <bean class="com.cnnct.rfid.service.impl.EpcBookListServiceImpl">
+                <property name="g4Dao" ref="g4Dao" />
+            </bean>
+        </property>
+    </bean>
+     <!--标签流水表-->
+    <bean id="epcDayListService" parent="baseTransactionProxyG4">
+        <property name="target">
+            <bean class="com.cnnct.rfid.service.impl.EpcDayListServiceImpl">
+                <property name="g4Dao" ref="g4Dao" />
+            </bean>
+        </property>
+    </bean>
+
+    <bean id="ordDayListService" parent="baseTransactionProxyG4">
+        <property name="target">
+            <bean class="com.cnnct.rfid.service.impl.OrdDayListServiceImpl">
+                <property name="g4Dao" ref="g4Dao" />
+            </bean>
+        </property>
+    </bean>
+
+    <!--RFID绑定及解绑-->
+    <bean id="epcProdInfoService" parent="baseTransactionProxyG4">
+        <property name="target">
+            <bean class="com.cnnct.rfid.service.impl.EpcProdInfoServiceImpl">
+                <property name="g4Dao" ref="g4Dao" />
+            </bean>
+        </property>
+    </bean>
+    <!--领片确认-->
+    <bean id="prodSureListService" parent="baseTransactionProxyG4">
+        <property name="target">
+            <bean class="com.cnnct.rfid.service.impl.ProdSureListServiceImpl">
+                <property name="g4Dao" ref="g4Dao" />
+            </bean>
+        </property>
+    </bean>
+       <!--成品确认-->
+    <bean id="prodBoxListService" parent="baseTransactionProxyG4">
+        <property name="target">
+            <bean class="com.cnnct.rfid.service.impl.ProdBoxListServiceImpl">
+                <property name="g4Dao" ref="g4Dao" />
+            </bean>
+        </property>
+    </bean>
+
+    <!--报表统计-->
+    <bean id="ordScheInfoService" parent="baseTransactionProxyG4">
+        <property name="target">
+            <bean class="com.cnnct.rfid.service.impl.OrdScheInfoServiceImpl">
+                <property name="g4Dao" ref="g4Dao" />
+            </bean>
+        </property>
+    </bean>
+
+    <bean id="deptScheInfoService" parent="baseTransactionProxyG4">
+        <property name="target">
+            <bean class="com.cnnct.rfid.service.impl.DeptScheInfoServiceImpl">
+                <property name="g4Dao" ref="g4Dao" />
+            </bean>
+        </property>
+    </bean>
+    <bean id="excelExportService" parent="baseTransactionProxyG4">
+    	<property name="target">
+    		<bean class="com.cnnct.rfid.service.impl.ExcelExportServiceImpl">
+    			<property name="g4Dao" ref="g4Dao"></property>
+    		</bean>
+    	</property>
+    </bean>
+    <bean id="qaInfoService" parent="baseTransactionProxyG4">
+    	<property name="target">
+    		<bean class="com.cnnct.rfid.service.impl.QAInfoServiceImpl">
+    			<property name="g4Dao" ref="g4Dao"></property>
+    		</bean>
+    	</property>
+    </bean>
+    <!-- 完单报告 -->
+    <bean id="orderReportService" parent="baseTransactionProxyG4">
+        <property name="target">
+            <bean class="com.cnnct.rfid.service.impl.OrderReportServiceImpl">
+                <property name="g4Dao" ref="g4Dao"></property>
+            </bean>
+        </property>
+    </bean>
+    <bean id="accountGrp" parent="baseTransactionProxyG4">
+        <property name="target">
+            <bean class="com.cnnct.loginMode2.service.impl.AccountGrpServiceImpl">
+                <property name="g4Dao" ref="g4Dao"></property>
+            </bean>
+        </property>
+    </bean>
+<!-- qC管理  -->
+    <bean id="manageQCService" parent="baseTransactionProxyG4">
+        <property name="target">
+            <bean class="com.cnnct.rfid.service.impl.ManageQCServiceImpl">
+                <property name="g4Dao" ref="g4Dao"></property>
+            </bean>
+        </property>
+    </bean>
+    
+<!--  信息反馈业务类  -->
+    <bean id="orderFbService" parent="baseTransactionProxyG4">
+        <property name="target">
+            <bean class="com.cnnct.loginMode2.service.impl.OrderFeedbackServiceImpl">
+                <property name="g4Dao" ref="g4Dao"></property>
+            </bean>
+        </property>
+    </bean>
+    
+<!--  排数业务类  -->
+    <bean id="arrangeService" parent="baseTransactionProxyG4">
+        <property name="target">
+            <bean class="com.cnnct.rfid.service.impl.ArrangeInfoServiceImpl">
+                <property name="g4Dao" ref="g4Dao"></property>
+            </bean>
+        </property>
+    </bean>
+<!--  salesfocus类  -->
+    <bean id="salesFocusReportService" parent="baseTransactionProxyG4">
+        <property name="target">
+            <bean class="com.cnnct.rfid.service.impl.SalesFocusReportServiceImpl">
+                <property name="g4Dao" ref="g4Dao"></property>
+            </bean>
+        </property>
+    </bean>
+<!--  吊挂信息类  -->
+    <bean id="hungProgressService" parent="baseTransactionProxyG4">
+        <property name="target">
+            <bean class="com.cnnct.rfid.service.impl.HungProgressServiceImpl">
+                <property name="g4Dao" ref="g4Dao"></property>
+            </bean>
+        </property>
+    </bean>
+<!-- 库存管理 -->
+    <bean id="depotCheckService" parent="baseTransactionProxyG4">
+        <property name="target">
+            <bean class="com.cnnct.loginMode2.service.impl.DepotCheckServiceImpl">
+                <property name="g4Dao" ref="g4Dao"></property>
+            </bean>
+        </property>
+    </bean>
+</beans>

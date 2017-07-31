@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<!-- 资源模型手工映射SQL语句 -->
+<sqlMap>
+	<typeAlias alias="dto"
+		type="org.eredlab.g4.ccl.datastructure.impl.BaseDto" />
+	<!--查询 -->
+	<select id="getHungProgress" parameterClass="Dto" resultClass="Dto" remapResults="true">
+		select * from HUNG_PROGRESS_LIST  
+		where statue=0 
+		<dynamic >
+			<isNotEmpty property="query_date" prepend="and">
+				work_date like '%$query_date$%' 
+			</isNotEmpty>
+		</dynamic>
+		order by work_date desc
+	</select>
+	
+	
+	<!-- 保存客户相关信息 -->
+	<insert id="insertHungProgress" parameterClass="Dto" >
+		insert into HUNG_PROGRESS_LIST  
+		(SEQ_NO,BRAND,FACTORY,AREA,STYLE,STYLE_NO,TEAM,MEMBER_OUTLINE,MEMBER_INLINE,LEADER,WORK_TIME,WORK_AMOUNT,WORK_PRICE,WORK_DATE,OPR_DATE,OPR_ID,STATUE)  
+		values 
+		(seq_hung_progress_seq.nextVal,#brand#,#factory#,#area#,#style#,#style_no#,#team#,#member_outline#,#member_inline#,#leader#,#work_time#,#work_amount#,#work_price#,#work_date#,#opr_date#,#opr_id#,0)
+	</insert>
+	<!-- update -->
+	<update id="updateHungProgress" parameterClass="Dto">
+		update HUNG_PROGRESS_LIST   
+		set brand=#brand#,factory=#factory#,area=#area#,STYLE=#style#,STYLE_NO=#style_no#,team=#team#,member_outline=#member_outline#,member_inline=#member_inline#,leader=#leader#,work_time=#work_time#,work_amount=#work_amount#,work_price=#work_price#,work_date=#work_date#,edt_date=#edt_date#  
+		<dynamic>
+			<isNotEmpty property="statue" prepend=",">
+				statue=#statue# 
+			</isNotEmpty>
+		</dynamic>
+		where seq_no=#seq_no#
+	</update>
+		
+	
+</sqlMap>

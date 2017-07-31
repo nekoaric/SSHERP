@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<sqlMap>
+    <typeAlias alias="dto"
+               type="org.eredlab.g4.ccl.datastructure.impl.BaseDto"/>
+    <!--        查询工厂人员信息       -->
+    <select id="queryArrangeUser" parameterClass="dto" resultClass="dto">
+        select seq_no,account,state 
+        from sys_arrange_user
+        where account = #account#
+        <isNotEmpty property="state" prepend="and">
+            state = #state#
+        </isNotEmpty>
+    </select>
+    <select id="queryArrangeGrp" parameterClass="dto" resultClass="dto">
+        select distinct grp_name,grp_id 
+        from sys_arrange_grp
+        where state = '0'
+        <isNotEmpty prepend="and" property="account">
+            account = #account#
+        </isNotEmpty>
+    </select>
+    
+    <insert id="insertArrangeGrp" parameterClass="dto">
+        merge into sys_arrange_grp a using(select '1' from dual) t on
+        (a.account=#account# and a.grp_id=#grp_id#)
+        when matched then 
+        update set grp_name = #grp_name#,state = #state#
+        when not matched then
+        insert(seq_no,grp_name,grp_id,account,state)
+        values(arrange_grp_seq.nextval,#grp_name#,#grp_id#,#account#,#state#)
+    </insert>
+    
+    <update id="deleteArrangeGrp" parameterClass="dto">
+        update sys_arrange_grp set state=#state# where account=#account# and grp_id=#grp_id#
+    </update>
+    
+    <update id="deleteArrangeUserGrp" parameterClass="dto">
+        update sys_arrange_grp set state=#state# where account=#account#
+    </update>
+    
+    <update id="updateArrangeUser" parameterClass="dto">
+        update sys_arrange_user set state=#state# where account=#account#
+    </update>
+    <insert id="insertArrangeUser" parameterClass="dto">
+        merge into sys_arrange_user a using(select '1' from dual) t on
+            (a.account=#account#)
+        when matched then
+        update set state = #state#
+        when not matched then
+        insert(seq_no,account,state)
+        values(arrange_user_seq.nextval,#account#,#state#)
+    </insert>
+    
+    <insert id="insertGrpArrangePlan" parameterClass="dto">
+    insert into grp_arrange_info(seq_no,grp_id,team_no,style_no,amount,start_date,end_date,calendarid,opr_type,
+        opr_date,opr_time,opr_id,state,title,order_no,create_dt,ins_num,materiel_date)
+        values(grp_arrange_info_seq.nextval,#grp_id#,#team_no#,#style_no#,#amount#,#start_date#,#end_date#,#calendarid#,#opr_type#,
+        #opr_date#,#opr_time#,#opr_id#,#state#,#title#,#order_no#,#create_dt#,#ins_num#,#materiel_date#)
+    </insert>
+    <!--  更新工厂排数安排  做一般数据更新不包括状态的改变(不包括工厂和班组的改变)-->
+    <update id="updateGrpArrangePlan" parameterClass="dto">
+        update grp_arrange_info set amount=#amount#,title=#title#,start_date=#start_date#,style_no=#style_no#,
+        end_date=#end_date#,calendarid=#calendarid#,opr_type=#opr_type#,opr_date=#opr_date#,opr_time=#opr_time#,
+        opr_id=#opr_id#,materiel_date = #materiel_date#,order_no = #order_no#,ins_num=#ins_num#
+        where   seq_no=#seq_no#
+    </update>
+<!--  更新工厂排数信息，用于删除使用  -->
+    <update id="deleteGrpArrangePlan" parameterClass="dto">
+        update grp_arrange_info set state=#state#,opr_type=#opr_type#,
+        opr_date=#opr_date#,opr_time=#opr_time#,opr_id=#opr_id#
+        where seq_no = #seq_no#
+    </update>
+    
+    <!--  查询工厂的安排计划  -->
+    <select id="queryGrpArrangePlan" parameterClass="dto" resultClass="dto">
+        select seq_no as id,grp_id,amount,start_date as "start",end_date as end,calendarid as cid,opr_type,
+        opr_date,opr_time,opr_id,state,title,order_no as "order",team_no,style_no as styleno,ins_num as insnum,
+        materiel_date as materieldate
+        from grp_arrange_info
+        where grp_id = #grp_id#
+        and team_no = #team_no#
+        and state = #state#
+        and (start_date <![CDATA[<=]]> #endDate# and end_date <![CDATA[>=]]> #startDate#)
+        <!--    添加处理后的业务排单    -->
+        union all
+        select c.seq_no as id,a.grp_id,a.amount,a.arrange_date as "start",a.arrange_date as end, '6' as cid,
+        '1' as opr_type,'------' as opr_date, '------' as opr_time,'------' as opr_id, '0' as state,
+        b.style_no  || '--(' || c.cur_amount ||')/('|| b.amount ||')--'|| b.order_no as title,
+        '------' as "order",b.team_no,b.style_no as styleno,b.ins_num as insnum,b.materiel_date as materieldate
+        from user_plan_arrange a 
+        left join order_plan_arrange c on a.seq_no = c.user_plan_no
+        left join grp_arrange_info b on c.arrange_no = b.seq_no
+        where c.arrange_no is not null 
+        and b.grp_id = #grp_id#
+        and b.team_no = #team_no#
+        and a.grp_id = b.grp_id 
+        and a.team_no = b.team_no
+        and (arrange_date <![CDATA[<=]]> #endDate# and arrange_date <![CDATA[>=]]> #startDate#)
+        <!--    查询实际生产数量   -->
+        union all
+         select a.seq_no as id,b.grp_id,a.real_amount as amount,a.arrange_date as "start",a.arrange_date as end, '7' as cid,
+        '1' as opr_type,'------' as opr_date, '------' as opr_time,'------' as opr_id, '0' as state,
+        b.style_no || '--(' || a.real_amount ||')--'||b.order_no as title,
+        '------' as "order",b.team_no,b.style_no as styleno,b.ins_num as insnum,b.materiel_date as materieldate
+        from grp_plan_arrange a 
+        left join grp_arrange_info b on a.arrange_no = b.seq_no
+        where b.state = '0'
+<!--  增加real_amount 因为实际生产数量不涉及删除操作，但是可以设置数量为0 所以添加>0的条件设置，过滤数量为0的情况     -->
+        and a.real_amount > 0
+        and b.grp_id = #grp_id#
+        and b.team_no = #team_no#
+        and (a.arrange_date <![CDATA[<=]]> #endDate# and a.arrange_date <![CDATA[>=]]> #startDate#)
+
+    </select>
+    
+    <insert id="insertRealAmount" parameterClass="dto">
+        merge into grp_plan_arrange a using (select '1' from dual) b on
+        (a.arrange_no=#arrange_no# and a.arrange_date=#arrange_date#)
+        when matched then
+        update set real_amount =#real_amount#,opr_date=#opr_date#,opr_time=#opr_time#,opr_id = #opr_id#
+        when not matched then
+        insert (seq_no,arrange_no,real_amount,arrange_date,opr_date,opr_time,opr_id)
+        values(grp_plan_arrange_seq.nextval,#arrange_no#,#real_amount#,#arrange_date#,#opr_date#,#opr_time#,#opr_id#)
+    </insert>
+    <!--  查询业务员排数信息 ，条件参数是seq_no  -->
+    <select id="queryUserArrangePlan" parameterClass="dto" resultClass="dto">
+        select seq_no,grp_id,amount,title,start_date,end_date,calendarid,order_no,opr_type,
+        opr_date,opr_time,opr_id,state,team_no,style_no,ins_num,materiel_date
+        from grp_arrange_info
+        where seq_no = #seq_no#
+    </select>
+    
+    <!--  排数新增更新语句  -->
+    <update id="updateRealArrangePlan4grp" parameterClass="dto">
+        merge into user_plan_arrange a using (select '1' from dual) t on
+        (grp_id=#grp_id# and team_no = #team_no# and arrange_date = #arrange_date#)
+        when matched then
+        update set amount = amount + #amount#
+        when not matched then
+        insert(seq_no,grp_id,team_no,arrange_date,amount)
+        values(user_plan_arrange_seq.nextval,#grp_id#,#team_no#,#arrange_date#,#amount#)
+    </update>
+    <!--  查询每天排期数据  -->
+    <select id="queryDayPlanArrange"  parameterClass="dto" resultClass="dto">
+<!--  增加当天生产数量用于计算  -->
+        select a.seq_no,a.grp_id,a.team_no,a.arrange_date,a.amount,nvl(b.real_amount,0) as real_amount
+        from user_plan_arrange a left join  
+                (select  sum(real_amount) as real_amount,a.arrange_date,b.grp_id,b.team_no
+                from grp_plan_arrange a left join grp_arrange_info b on a.arrange_no = b.seq_no 
+                where b.state ='0' group by b.grp_id,b.team_no,arrange_date)b on
+        a.arrange_date = b.arrange_date and a.grp_id = b.grp_id and a.team_no = b.team_no
+        where a.grp_id = #grp_id#
+        and a.team_no = #team_no#
+        and a.arrange_date <![CDATA[>=]]> #arrange_date#
+        order by a.arrange_date 
+    </select>
+<!--  查询所有未完成的订单  -->
+    <select id="queryUndoneOrder" parameterClass="dto" resultClass="dto">
+        select a.seq_no as arrange_no,a.grp_id,a.amount,a.title,a.start_date,
+                a.calendarid,a.order_no,a.opr_type,a.opr_date,a.opr_time,a.opr_id,a.state,nvl(b.real_amount,0) as real_amount,
+                a.style_no,a.team_no,a.materiel_date,a.ins_num
+        from grp_arrange_info a
+        left join (select arrange_no,sum(nvl(real_amount,0)) as real_amount from grp_plan_arrange group by arrange_no) b
+        on a.seq_no = b.arrange_no 
+        where a.amount > nvl(b.real_amount,0)
+        and a.calendarid in ($cid$)
+        and a.state = '0'
+        and a.grp_id = #grp_id#
+        and a.team_no = #team_no#
+        order by a.start_date,a.seq_no
+    </select>
+<!--  删除重新排序的数据  -->
+    <delete id="deleteOrderPlanArrange" parameterClass="dto">
+        delete order_plan_arrange where user_plan_no in (
+	        select a.seq_no
+	        from user_plan_arrange a
+	        where a.grp_id = #grp_id#
+	        and a.team_no = #team_no#
+	        )
+
+    </delete>
+    <insert id="insertOrderPlanArrange" parameterClass="dto">
+         insert into order_plan_arrange(seq_no,user_plan_no,arrange_no,remain_amount,cur_amount)
+         values(order_plan_arrange_seq.nextval,#user_plan_no#,#arrange_no#,#remain_amount#,#cur_amount#)
+    </insert>
+    <!--  用工厂编号查询部门信息  -->
+    <select id="queryDeptInfo4Arrange" parameterClass="dto" resultClass="dto">
+		select dept_id as id,parent_id,dept_name as text,dept_state
+		from (select distinct dept_id,parent_id,dept_name,dept_state
+		        from sys_dept_info 
+		        start with dept_id in (select dept_id from sys_team_info where state = '0')
+		        connect by prior parent_id = dept_id) a
+		where a.dept_state = '0'
+		and parent_id in (select match_dept_id from sys_grps_info where grp_id = #grp_id#)
+    </select>
+    
+    <!--  查询排数的工厂信息  -->
+    <select id="queryGrpsInfo4Arrange" parameterClass="dto" resultClass="dto">
+        SELECT a.name as text,a.grp_id as id ,a.match_dept_id,b.dept_id,b.dept_name as match_dept_name,
+        a.belong_grp_id as parent_id
+        from (select distinct name,grp_id,match_dept_id,belong_grp_id ,state
+            from sys_grps_info sgi
+	       start with grp_id in(select grp_id 
+	           from sys_arrange_grp where state = '0'
+                <isNotEmpty property="account" prepend="and">
+                   account = #account#
+                </isNotEmpty>
+	           )
+	       connect by prior belong_grp_id = grp_id) a 
+        inner join sys_dept_info b on a.match_dept_id = b.dept_id
+        where a.belong_grp_id = '$node$'
+        and a.state = '0'
+        order by a.grp_id
+    </select>
+    <!--  查询指定日期排单的信息  -->
+    <select id="queryDayArrangeInfo" parameterClass="dto" resultClass="dto">
+        select distinct grp_id,team_no
+        from user_plan_arrange a
+        where a.arrange_date <![CDATA[<]]> #arrange_date#
+        and seq_no in (select user_plan_no from order_plan_arrange) 
+    </select>
+    
+    <!--  查询工厂，班组，订单信息  -->
+    <select id="queryOrderArrangeInfo" parameterClass="dto" resultClass="dto">
+        select seq_no,grp_id,team_no,style_no,amount,title,order_no
+        from grp_arrange_info
+        where grp_id = #grp_id#
+        and team_no = #team_no#
+        and order_no = #order_no#
+        and state = '0'
+    </select>
+    
+     <!--  查询排单计划  -->
+    <select id="queryOrderArrangeInfo4style" parameterClass="dto" resultClass="dto">
+        select seq_no,grp_id,team_no,style_no,amount,title,order_no
+        from grp_arrange_info
+        where grp_id = #grp_id#
+        and team_no = #team_no#
+        and style_no = #style_no#
+        and amount = #amount#
+        and state = '0'
+    </select>
+</sqlMap> 

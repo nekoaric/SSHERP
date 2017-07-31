@@ -1,0 +1,337 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<!-- 资源模型手工映射SQL语句 -->
+<sqlMap>
+	<typeAlias alias="dto"
+		type="org.eredlab.g4.ccl.datastructure.impl.BaseDto" />
+	<!--查询sflist -->
+	<select id="getSaleFoucusList" parameterClass="Dto" resultClass="Dto" remapResults="true">
+		select a.* from SALES_FOCUS_LIST a left join sales_focus_brand_info b on a.brand_info_no=b.seq_no 
+		<dynamic prepend="where">
+			<isNotEmpty property="operater" prepend="and">
+				b.operater like '%$operater$%'
+			</isNotEmpty>
+			<isNotEmpty property="monthsP" prepend="and">
+				substr(a.week,1,8) in ($monthsP$)
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	<select id="getSaleFoucusSumList" parameterClass="Dto" resultClass="Dto" remapResults="true">
+		select  a.* ,b.brand,b.team,b.leader,b.location from
+		(select substr(a.week,1,8)  month_p,a.brand_info_no,sum(a.amount) amount , sum(a.fob_price) fob_price  from SALES_FOCUS_LIST a  left join sales_focus_brand_info b on a.brand_info_no=b.seq_no 
+		 <dynamic prepend="where">
+			<isNotEmpty property="operater" prepend="and">
+				b.operater like '%$operater$%' 
+			</isNotEmpty>
+			<isNotEmpty property="monthsP" prepend="and">
+				substr(a.week,1,8) in ($monthsP$) 
+			</isNotEmpty>
+		</dynamic>
+		  group by substr(a.week,1,8),a.brand_info_no  order by substr(a.week,1,8)  desc
+		) a left join sales_focus_brand_info b on a.brand_info_no=b.seq_no 
+		
+		
+	</select>
+	
+	
+	<!-- 查询所有品牌信息 -->
+	<select id="querySalesFocusBrandInfoByParam" parameterClass="Dto" resultClass="Dto" remapResults="true">
+		select 	*	from SALES_FOCUS_BRAND_INFO 
+		where 
+		state = 0 
+		<dynamic >
+			<isNotEmpty property="team" prepend="and">
+				team like '%$team$%' 
+			</isNotEmpty>
+			<isNotEmpty property="brand" prepend="and">
+				brand like '%$brand$%'  
+			</isNotEmpty>
+			<isNotEmpty property="leader" prepend="and">
+				leader like '%$leader$%'  
+			</isNotEmpty>
+			<isNotEmpty property="location" prepend="and">
+				location like '%$location$%' 
+			</isNotEmpty>
+		</dynamic> 
+		order by BRAND asc
+	</select>
+	<!-- 根据操作人查询品牌相关系信息 -->
+	<select id="getSaleFoucusBrandInfoByOpertater" parameterClass="Dto" resultClass="Dto" remapResults="true">
+		select SEQ_NO,TEAM,BRAND,LEADER,LOCATION,operater 
+		from SALES_FOCUS_BRAND_INFO 
+		where 
+		state = 0 
+		<dynamic>
+			<isNotEmpty property="operater" prepend="and">
+				operater like '%$operater$%'
+			</isNotEmpty>
+		</dynamic>
+		order by location desc 
+	</select>
+	<!-- 保存报表 -->
+	<insert id="updateSalesFocus" parameterClass="dto">
+		merge into sales_focus_list a using  (select '1' from dual) t  on (
+		a.week=#week# and a.brand_info_no=#brand_info_no# 
+		)
+		when matched then 
+		update
+		<dynamic prepend="set">
+			<isNotEmpty prepend="," property="amount">
+				amount=#amount#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="fob_price">
+				fob_price=#fob_price#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="remark">
+				remark=#remark#
+			</isNotEmpty>
+		</dynamic>
+		when not matched then 
+		insert (SEQ_NO,WEEK,BRAND_INFO_NO,AMOUNT,FOB_PRICE,REMARK) 
+		VALUES
+		(SEQ_SALES_FOCUS_LIST_SEQ_NO.nextval,#week#,#brand_info_no#,#amount#,#fob_price#,#remark#)
+	</insert>
+	
+	<!-- 保存客户相关信息 -->
+	<insert id="insertSalesFoucusChargeInfo" parameterClass="Dto" >
+		insert into SALES_FOCUS_BRAND_INFO 
+		(SEQ_NO,TEAM,BRAND,LEADER,OPERATER,LOCATION,REMARK,SUGESSTION,STATE,OPR_TIME) 
+		values 
+		(SALESFOCUSBRANDINFO_SEQ.NEXTVAL,#team#,#brand#,#leader#,#operater#,#location#,#remark#,#sugesstion#,'0',#opr_time#)
+	</insert>
+	<!-- update -->
+	<update id="updateSalesFoucusChargeInfo" parameterClass="Dto">
+		update SALES_FOCUS_BRAND_INFO 
+		set team=#team#,brand=#brand#,leader=#leader#,operater=#operater#,location=#location#,remark=#remark#,sugesstion=#sugesstion#,edt_time=#edt_time# 
+		where seq_no=#seq_no#
+		
+	</update>
+		<!-- delete -->
+	<update id="deleteSaleFoucusChargeInfo" parameterClass="Dto">
+		update SALES_FOCUS_BRAND_INFO 
+		set state='1',edt_time=#edt_time# 
+		where seq_no=#seq_no#
+		
+	</update>
+	
+	<!-- 品牌信息重复验证 -->
+	<select id="checkDouble4BrandInfo" parameterClass="Dto" resultClass="Dto"  >
+		select * from SALES_FOCUS_BRAND_INFO 
+		WHERE 
+		brand=#brand# AND leader=#leader# AND location=#location# AND STATE='0'
+	</select>
+	<!-- 验证操作人是否在系统中存在 -->
+	<select id="checkOperater" parameterClass="Dto" remapResults="true" resultClass="Dto">
+		select * from sys_user_info where user_name like '%$user_name$%'
+	</select>
+	
+	
+	<!-- 按照品牌汇总 -->
+	<select id="getSalesFocusBrandReport1" remapResults="true" resultClass="Dto" parameterClass="Dto">
+		select b.brand,sum(a.amount) as amount,sum(a.fob_price) as fob_price from sales_focus_brand_info b left join sales_focus_list a on a.brand_info_no=b.seq_no where b.state!='1' 
+		<dynamic prepend="and">
+			<isNotEmpty property="yearPeriod">
+				a.week like '%$yearPeriod$%' 
+			</isNotEmpty>
+		</dynamic>
+		group by b.brand order by fob_price desc
+ 	</select>
+	<!-- 按照负责人汇总 -->
+	<select id="getSalesFocusLeaderReport1" remapResults="true" resultClass="Dto" parameterClass="Dto">
+		select b.leader,sum(a.amount) as amount,sum(a.fob_price) as fob_price from sales_focus_brand_info b left join sales_focus_list a on a.brand_info_no=b.seq_no where b.state!='1' 
+		<dynamic prepend="and">
+			<isNotEmpty property="yearPeriod">
+				a.week like '%$yearPeriod$%' 
+			</isNotEmpty>
+		</dynamic>group by b.leader order by fob_price desc
+	</select>
+	<!-- 按照产地汇总 -->
+	<select id="getSalesFocusLocationReport1" remapResults="true" resultClass="Dto" parameterClass="Dto">
+		select b.location,sum(a.amount) as amount,sum(a.fob_price) as fob_price from sales_focus_brand_info b left join sales_focus_list a on a.brand_info_no=b.seq_no where b.state!='1' 
+		<dynamic prepend="and">
+			<isNotEmpty property="yearPeriod">
+				a.week like '%$yearPeriod$%' 
+			</isNotEmpty>
+		</dynamic>
+		group by b.location order by fob_price desc
+	</select>
+	<!-- 按照大组 -->
+	<select id="getSalesFocusTeamReport1" remapResults="true" resultClass="Dto" parameterClass="Dto">
+		select b.team,sum(a.amount) as amount,sum(a.fob_price) as fob_price  from sales_focus_brand_info b left join sales_focus_list a on a.brand_info_no=b.seq_no where b.state!='1' 
+		<dynamic prepend="and">
+			<isNotEmpty property="yearPeriod">
+				a.week like '%$yearPeriod$%' 
+			</isNotEmpty>
+		</dynamic>
+		group by b.team order by fob_price desc
+	</select>
+	
+	
+	<select id="getSalesFocusBrandReport" remapResults="true" resultClass="Dto" parameterClass="Dto">
+		select  a.*,cast(amount*100.0/(select SUM(amount) from 
+			( SELECT b.brand, SUM(a.amount)    AS amount, SUM(a.fob_price) AS fob_price FROM sales_focus_list a LEFT JOIN sales_focus_brand_info b ON  a.brand_info_no=b.seq_no	WHERE   b.state!='1'
+		    <dynamic prepend="and">
+					<isNotEmpty property="yearPeriod">
+						a.week like '%$yearPeriod$%' 
+					</isNotEmpty>
+			</dynamic> 
+			GROUP BY b.brand ORDER BY fob_price desc )
+		) as decimal(28,2)) amount_per,
+		cast(fob_price*100.0/(select SUM(fob_price) from 
+			( SELECT b.brand, SUM(a.amount)    AS amount, SUM(a.fob_price) AS fob_price FROM sales_focus_list a LEFT JOIN sales_focus_brand_info b ON  a.brand_info_no=b.seq_no	WHERE   b.state!='1'
+			    <dynamic prepend="and">
+						<isNotEmpty property="yearPeriod">
+							a.week like '%$yearPeriod$%' 
+						</isNotEmpty>
+				</dynamic> 
+			GROUP BY b.brand ORDER BY fob_price desc )
+		) as decimal(28,2)) fob_price_per from
+		( SELECT b.brand, SUM(a.amount)    AS amount, SUM(a.fob_price) AS fob_price FROM sales_focus_list a LEFT JOIN sales_focus_brand_info b ON  a.brand_info_no=b.seq_no	WHERE   b.state!='1'
+	    <dynamic prepend="and">
+				<isNotEmpty property="yearPeriod">
+					a.week like '%$yearPeriod$%' 
+				</isNotEmpty>
+		</dynamic> 
+		GROUP BY b.brand ORDER BY fob_price desc ) a ORDER BY a.fob_price desc
+	</select>
+	<select id="getSalesFocusLeaderReport" remapResults="true" resultClass="Dto" parameterClass="Dto">
+		select  a.*,cast(amount*100.0/(select SUM(amount) from 
+			( SELECT b.leader, SUM(a.amount)    AS amount, SUM(a.fob_price) AS fob_price FROM sales_focus_list a LEFT JOIN sales_focus_brand_info b ON  a.brand_info_no=b.seq_no	WHERE   b.state!='1'
+		    <dynamic prepend="and">
+					<isNotEmpty property="yearPeriod">
+						a.week like '%$yearPeriod$%' 
+					</isNotEmpty>
+			</dynamic> 
+			GROUP BY b.leader ORDER BY fob_price desc )
+		) as decimal(28,2)) amount_per,
+		cast(fob_price*100.0/(select SUM(fob_price) from 
+			( SELECT b.leader, SUM(a.amount)    AS amount, SUM(a.fob_price) AS fob_price FROM sales_focus_list a LEFT JOIN sales_focus_brand_info b ON  a.brand_info_no=b.seq_no	WHERE   b.state!='1'
+			    <dynamic prepend="and">
+						<isNotEmpty property="yearPeriod">
+							a.week like '%$yearPeriod$%' 
+						</isNotEmpty>
+				</dynamic> 
+			GROUP BY b.leader ORDER BY fob_price desc )
+		) as decimal(28,2)) fob_price_per from
+		( SELECT b.leader, SUM(a.amount)    AS amount, SUM(a.fob_price) AS fob_price FROM sales_focus_list a LEFT JOIN sales_focus_brand_info b ON  a.brand_info_no=b.seq_no	WHERE   b.state!='1'
+	    <dynamic prepend="and">
+				<isNotEmpty property="yearPeriod">
+					a.week like '%$yearPeriod$%' 
+				</isNotEmpty>
+		</dynamic> 
+		GROUP BY b.leader ORDER BY fob_price desc ) a ORDER BY a.fob_price desc
+	</select>
+	
+	<select id="getSalesFocusLocationReport" remapResults="true" resultClass="Dto" parameterClass="Dto">
+		select  a.*,cast(amount*100.0/(select SUM(amount) from 
+			( SELECT b.location, SUM(a.amount)    AS amount, SUM(a.fob_price) AS fob_price FROM sales_focus_list a LEFT JOIN sales_focus_brand_info b ON  a.brand_info_no=b.seq_no	WHERE   b.state!='1'
+		    <dynamic prepend="and">
+					<isNotEmpty property="yearPeriod">
+						a.week like '%$yearPeriod$%' 
+					</isNotEmpty>
+			</dynamic> 
+			GROUP BY b.location ORDER BY fob_price desc )
+		) as decimal(28,2)) amount_per,
+		cast(fob_price*100.0/(select SUM(fob_price) from 
+			( SELECT b.location, SUM(a.amount)    AS amount, SUM(a.fob_price) AS fob_price FROM sales_focus_list a LEFT JOIN sales_focus_brand_info b ON  a.brand_info_no=b.seq_no	WHERE   b.state!='1'
+			    <dynamic prepend="and">
+						<isNotEmpty property="yearPeriod">
+							a.week like '%$yearPeriod$%' 
+						</isNotEmpty>
+				</dynamic> 
+			GROUP BY b.location ORDER BY fob_price desc )
+		) as decimal(28,2)) fob_price_per from
+		( SELECT b.location, SUM(a.amount)    AS amount, SUM(a.fob_price) AS fob_price FROM sales_focus_list a LEFT JOIN sales_focus_brand_info b ON  a.brand_info_no=b.seq_no	WHERE   b.state!='1'
+	    <dynamic prepend="and">
+				<isNotEmpty property="yearPeriod">
+					a.week like '%$yearPeriod$%' 
+				</isNotEmpty>
+		</dynamic> 
+		GROUP BY b.location ORDER BY fob_price desc ) a ORDER BY a.fob_price desc
+	</select>
+	
+	<select id="getSalesFocusTeamReport" remapResults="true" resultClass="Dto" parameterClass="Dto">
+		select  a.*,cast(amount*100.0/(select SUM(amount) from 
+			( SELECT b.team, SUM(a.amount)    AS amount, SUM(a.fob_price) AS fob_price FROM sales_focus_list a LEFT JOIN sales_focus_brand_info b ON  a.brand_info_no=b.seq_no	WHERE   b.state!='1'
+		    <dynamic prepend="and">
+					<isNotEmpty property="yearPeriod">
+						a.week like '%$yearPeriod$%' 
+					</isNotEmpty>
+			</dynamic> 
+			GROUP BY b.team ORDER BY fob_price desc )
+		) as decimal(28,2)) amount_per,
+		cast(fob_price*100.0/(select SUM(fob_price) from 
+			( SELECT b.team, SUM(a.amount)    AS amount, SUM(a.fob_price) AS fob_price FROM sales_focus_list a LEFT JOIN sales_focus_brand_info b ON  a.brand_info_no=b.seq_no	WHERE   b.state!='1'
+			    <dynamic prepend="and">
+						<isNotEmpty property="yearPeriod">
+							a.week like '%$yearPeriod$%' 
+						</isNotEmpty>
+				</dynamic> 
+			GROUP BY b.team ORDER BY fob_price desc )
+		) as decimal(28,2)) fob_price_per from
+		( SELECT b.team, SUM(a.amount)    AS amount, SUM(a.fob_price) AS fob_price FROM sales_focus_list a LEFT JOIN sales_focus_brand_info b ON  a.brand_info_no=b.seq_no	WHERE   b.state!='1'
+	    <dynamic prepend="and">
+				<isNotEmpty property="yearPeriod">
+					a.week like '%$yearPeriod$%' 
+				</isNotEmpty>
+		</dynamic> 
+		GROUP BY b.team ORDER BY fob_price desc ) a ORDER BY a.fob_price desc
+	</select>
+	<select id="getSalesFocusLeaderReport2" remapResults="true" resultClass="Dto" parameterClass="Dto">
+		SELECT b.leader, SUM(a.amount)    AS amount, SUM(a.fob_price) AS fob_price
+		FROM sales_focus_list a LEFT JOIN sales_focus_brand_info b ON
+	    a.brand_info_no=b.seq_no
+		WHERE
+	    b.state!='1' 
+	    <dynamic prepend="and">
+				<isNotEmpty property="yearPeriod">
+					a.week like '%$yearPeriod$%' 
+				</isNotEmpty>
+		</dynamic>
+		GROUP BY b.leader 
+		ORDER BY fob_price desc 
+	</select>
+	<select id="getSalesFocusLocationReport2" remapResults="true" resultClass="Dto" parameterClass="Dto">
+		SELECT b.location, SUM(a.amount)    AS amount, SUM(a.fob_price) AS fob_price
+		FROM sales_focus_list a LEFT JOIN sales_focus_brand_info b ON
+	    a.brand_info_no=b.seq_no
+		WHERE
+	    b.state!='1' 
+	    <dynamic prepend="and">
+				<isNotEmpty property="yearPeriod">
+					a.week like '%$yearPeriod$%' 
+				</isNotEmpty>
+		</dynamic>
+		GROUP BY b.location 
+		ORDER BY fob_price desc 
+	</select>
+	<select id="getSalesFocusTeamReport2" remapResults="true" resultClass="Dto" parameterClass="Dto">
+		SELECT b.team, SUM(a.amount)    AS amount, SUM(a.fob_price) AS fob_price
+		FROM sales_focus_list a LEFT JOIN sales_focus_brand_info b ON
+	    a.brand_info_no=b.seq_no
+		WHERE
+	    b.state!='1' 
+	    <dynamic prepend="and">
+				<isNotEmpty property="yearPeriod">
+					a.week like '%$yearPeriod$%' 
+				</isNotEmpty>
+		</dynamic>
+		GROUP BY b.team 
+		ORDER BY fob_price desc 
+	</select>
+	<select id="getSalesWeekList" remapResults="true" resultClass="Dto" parameterClass="Dto">
+		select * from SALES_FOCUS_WEEK_LIST
+		<dynamic prepend="where">
+			<isNotEmpty property="year" prepend="and">
+				s_year=#year#
+			</isNotEmpty>
+			<isNotEmpty property="monthsP" prepend="and">
+				month in ($monthsP$)
+			</isNotEmpty>
+			<isNotEmpty property="s_week" prepend="and">
+				s_week=#s_week#
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	
+</sqlMap>

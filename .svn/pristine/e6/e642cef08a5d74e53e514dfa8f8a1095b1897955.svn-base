@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 全局数据访问模型 -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="
+	http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+	http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-2.5.xsd
+	http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-2.5.xsd">
+    
+    <!-- weblogic jndi 数据源 -->
+    <bean id="dataSourceG4" class="org.springframework.jndi.JndiObjectFactoryBean">
+        <property name="jndiName">
+            <value>jndijducard</value>
+        </property>
+<!--        <property name="resourceRef">-->
+<!--            <value>true</value>-->
+<!--        </property>-->
+<!--        <property name="jndiEnvironment">-->
+<!--            <props>-->
+<!--                <prop key="java.naming.factory.initial">weblogic.jndi.WLInitialContextFactory</prop>-->
+<!--                <prop key="java.naming.provider.url">t3://localhost:80</prop>-->
+<!--                <prop key="java.naming.provider.url">t3://localhost:7001</prop>-->
+<!--            </props>-->
+<!--        </property>-->
+    </bean>
+    
+<!--    <bean id="dataSourceMSSQL" class="org.springframework.jndi.JndiObjectFactoryBean">-->
+<!--        <property name="jndiName">-->
+<!--            <value>jndiscgjmssql</value>-->
+<!--        </property>-->
+<!--    </bean>-->
+	
+    <!-- 针对不同的数据源，该配置需要更改，如c3p0,weblogic下连接池，websphere下连接池 -->
+    <bean id="nativeJdbcExtractor" class="org.springframework.jdbc.support.nativejdbc.WebLogicNativeJdbcExtractor" lazy-init="true" />
+    
+    <bean id="oracleLobHandler" class="org.springframework.jdbc.support.lob.OracleLobHandler" lazy-init="true">
+        <property name="nativeJdbcExtractor">
+            <ref local="nativeJdbcExtractor" />
+        </property>   
+    </bean>
+    
+	<!-- 配置sqlmapClientFactory -->
+	<bean id="sqlMapClientG4" class="org.springframework.orm.ibatis.SqlMapClientFactoryBean">
+		<property name="configLocations">
+			<list>
+				<value>config/sys/sys.sqlmap.xml</value>
+			</list>
+		</property>
+		<property name="dataSource" ref="dataSourceG4" />
+		<property name="lobHandler" ref="oracleLobHandler" />
+	</bean>
+	
+	<!-- 配置G4数据读取器  -->
+	<bean id="g4Reader" class="org.eredlab.g4.bmf.base.IReaderImpl">
+		<property name="sqlMapClient" ref="sqlMapClientG4" />
+	</bean>
+    
+    <!-- 配置MSSQL数据读取器  -->
+    <!--<bean id="msSQLReader" class="org.eredlab.g4.bmf.base.IReaderImpl4MSSQL">-->
+        <!--<property name="sqlMapClient" ref="sqlMapClientMSSQL" />-->
+    <!--</bean>-->
+	
+	<!-- 配置G4Dao  -->
+	<bean id="g4Dao" class="org.eredlab.g4.bmf.base.IDaoImpl">
+		<property name="sqlMapClient" ref="sqlMapClientG4" />
+	</bean>
+	
+</beans>

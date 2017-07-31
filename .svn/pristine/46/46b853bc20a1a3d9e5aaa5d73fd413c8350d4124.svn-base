@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<sqlMap>
+    <typeAlias alias="dto"
+               type="org.eredlab.g4.ccl.datastructure.impl.BaseDto"/>
+    <insert id="saveQAInfo" parameterClass="dto">
+    	insert into welcome_info  ( seq_no,info_title,info_detail,info_type,remark,pub_time,
+    	 OPR_NAME)
+    	values(SEQ_WELCOME_INFO.nextVal,#info_title#,#info_detail#,#info_type#,#remark#,#pub_time#,#OPR_NAME#
+    	)
+    </insert>
+    <select id="queryQAInfo" parameterClass="dto" resultClass="dto" remapResults="true">
+    	select seq_no,info_title,info_detail,remark,pub_time,opr_name
+    	from welcome_info 
+ 	<dynamic prepend="where">
+			<isNotEmpty  property="info_type"> 
+				info_type =#info_type# 
+			</isNotEmpty>
+		</dynamic>
+    </select>
+        <select id="queryByAnswer" parameterClass="dto" resultClass="dto" remapResults="true">
+    	select seq_no,question,answer,last_date,last_opr_name
+    	from qainfo where question like '%#answer#%'
+    	
+    </select>
+        <!-- 修改 -->
+    <update id="updateQAInfo" parameterClass="dto">
+        UPDATE welcome_info
+        <dynamic prepend="SET">
+            <isNotEmpty prepend="," property="info_title">
+                info_title =#info_title#
+            </isNotEmpty>
+             <isNotEmpty prepend="," property="info_detail">
+                info_detail =#info_detail#
+            </isNotEmpty>
+             <isNotEmpty prepend="," property="opr_name">
+                opr_name =#opr_name#
+            </isNotEmpty>            
+             <isNotEmpty prepend="," property="pub_time">
+                pub_time =#pub_time#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="remark">
+                remark =#remark#
+            </isNotEmpty>
+        </dynamic>
+        where seq_no =#seq_no#
+    </update>
+    <delete id="deleteQAInfo" parameterClass="dto" >
+		DELETE FROM welcome_info WHERE seq_no =#seq_no#
+	</delete>
+    <select id="queryUserName" parameterClass="dto" resultClass="dto" >
+    	select user_name 
+    	from sys_user_info where account = #account#
+    	
+    </select>
+    <select id="queryFileInfo" parameterClass="dto" resultClass="dto" remapResults="true">
+    	select seq_no,info_title,info_detail,remark,file_name,file_name_alias,pub_time,opr_name
+    	from welcome_info where info_type= '2'  
+		 <dynamic prepend="and">
+            <isNotEmpty property="seq_no">
+                seq_no =#seq_no#
+            </isNotEmpty>
+         </dynamic>
+         order by pub_time desc
+	</select>
+	<insert id="saveFileInfo" parameterClass="dto">
+    	insert into welcome_info  ( seq_no,info_title,info_detail,info_type,remark,pub_time,
+    	 OPR_NAME,file_name,file_name_alias)
+    	values(SEQ_WELCOME_INFO.nextVal,#info_title#,#info_detail#,#info_type#,#remark#,#pub_time#,#OPR_NAME#
+    	,#file_name#,#file_name_alias#)
+    </insert>
+    
+    <select id="findLatestProdFile" parameterClass="dto" resultClass="Dto">
+    	select  * from welcome_info where info_title like '%$key1$%' and rownum=1 order by pub_time desc
+    </select>
+</sqlMap>

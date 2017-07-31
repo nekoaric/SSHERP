@@ -1,0 +1,765 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<sqlMap>
+    <typeAlias alias="dto"
+               type="org.eredlab.g4.ccl.datastructure.impl.BaseDto"/>
+    <!--       查询时间段生产通知单信息        -->
+    <select id="queryOldprodord" parameterClass="dto" resultClass="dto" remapResults="true">
+        select * from prod_ord_info where new_opr_date <![CDATA[<]]>'2014-06-01'
+		  and  ord_seq_no  not in (
+		select distinct order_id from ord_day_list where opr_time <![CDATA[>]]> '2014-06-01')        
+    </select>
+    <!--     查询生产通知单的文件信息         -->
+    <select id="queryFileInfo4prodord" parameterClass="dto" resultClass="dto" remapResults="true">
+        select $filetype$ as filename,$filetype$_alias as filenamealias,seq_no,prod_ord_seq,ord_seq_no from prod_ord_info where seq_no = #seq_no#
+    </select>
+    
+	<!-- 删除我的订单我的订单 -->
+	<delete id="deleteBind4Myorder" parameterClass="dto">
+		delete from order_operator where account = #account# and prod_ord_seq in ($prodord$)
+	</delete>
+	<insert id="insert4Order_Operator" parameterClass="dto">
+		insert into order_operator(seq_no,ord_seq_no,prod_ord_seq,account) values(order_operator_sequence.nextval,#ord_seq_no#,#prod_ord_seq#,#account#)
+	</insert>
+	<select id="queryProdOrdInfo4OrderAndStyle" parameterClass="dto" resultClass="dto">
+		select prod_ord_seq,ord_seq_no,style_no from prod_ord_info where ord_seq_no = #ord_seq_no# and style_no = #style_no#
+	</select>
+<!-- 查询生产通知单的统计数量 -->
+	<select id="queryProdOrdInfo4Count" parameterClass="dto" resultClass="java.lang.Integer">
+	   select count(*) as pagecount
+	    from prod_ord_info a
+        left join bas_cust_list b on a.cust_id =b.cust_id
+        left join
+        (select a.*,b.name as sew_fac_name,c.name as bach_fac_name,d.name as pack_fac_name
+            from prod_plan_info a
+            left join sys_grps_info b on a.sew_fac = b.grp_id
+            left join sys_grps_info c on a.bach_fac = c.grp_id
+            left join sys_grps_info d on a.pack_fac = d.grp_id
+        )c on a.prod_ord_seq =c.prod_ord_seq
+        left join ord_bas_info d on a.ord_seq_no =d.order_id
+        left join (select sum(ins_num) as ins_num,prod_ord_seq from prod_bas_info
+        group by prod_ord_seq) e on a.prod_ord_seq = e.prod_ord_seq
+        left join (select sum(real_cut_num)as cut_num ,order_id from prodord_sche_list group by order_id) psl on psl.order_id = a.ord_seq_no
+        left join prod_sub_info f on a.prod_ord_seq = f.id
+        where a.state !='1'
+        <isEqual prepend="and" property="fromFlag" compareValue="1"> <!-- fromFlag为1：查询条件来自详细查询 -->
+            a.prod_ord_seq in ($prodords$)
+        </isEqual>
+        <isNotEqual property="fromFlag" compareValue="1">
+            <isNotEmpty prepend="" property="isManageProdOrd">
+                <isNotEmpty prepend="AND" property="prodstatus">
+                    a.prodstatus in ($prodstatus$)
+                </isNotEmpty>
+                <isNotEmpty prepend="AND" property="prod_ord_seq">
+                    a.prod_ord_seq like '%$prod_ord_seq$%'
+                </isNotEmpty>
+                <isNotEmpty prepend="AND" property="style_no">
+                    a.style_no like '%$style_no$%'
+                </isNotEmpty>
+            </isNotEmpty>
+            <isEmpty prepend="AND" property="isHistory">
+                a.historystatus != '1'
+            </isEmpty>
+            <isEmpty prepend="" property="isManageProdOrd">
+                <isNotEmpty prepend="AND" property="seq_no">
+                    a.seq_no=#seq_no#
+                </isNotEmpty>
+                <isNotEmpty prepend="AND" property="prod_ord_seq">
+                    a.prod_ord_seq=#prod_ord_seq#
+                </isNotEmpty>
+                <isNotEmpty prepend="AND" property="cust_id">
+                    a.cust_id in ($cust_id$)
+                </isNotEmpty>
+                <isNotEmpty prepend="AND" property="country">
+                    b.country =#country#
+                </isNotEmpty>
+                <isNotEmpty prepend="AND" property="cust_name">
+                    b.cust_name like '%$cust_name$%'
+                </isNotEmpty>
+                <isNotEmpty prepend="AND" property="belong_grp">
+                    (
+                    order_id in
+                    (select ord_seq_no from prod_ord_info where prod_ord_seq in
+                    (select distinct prod_ord_seq from epc_day_list
+                    where trm_no in ( select trm_no from dev_trm_info where belong_grp like '$belong_grp$%' ))
+                    )
+                    or
+                    order_id in (select distinct order_id from ord_day_list where grp_id like '$belong_grp$%')
+                    )
+                </isNotEmpty>
+                <isNotEmpty prepend="AND" property="prod_ord_seq_list">
+                    a.prod_ord_seq in ($prod_ord_seq_list$)
+                </isNotEmpty>
+                <isNotEmpty prepend="AND" property="ord_seq_no">
+                    a.ord_seq_no = #ord_seq_no#
+                </isNotEmpty>
+            </isEmpty>
+            <isNotEmpty prepend="AND" property="ord_seq_no">
+                a.ord_seq_no like '%$ord_seq_no$%'
+            </isNotEmpty>
+        </isNotEqual>
+	</select>
+    <!-- 获取生产通知单信息 -->
+    <select id="queryProdOrdInfo" parameterClass="map" resultClass="dto" remapResults="true">
+       select a.seq_no,a.prod_ord_seq,a.cust_id,a.brand,a.style_no,a.contract_id,a.ord_seq_no,a.area_no,
+        a.article,a.classify,a.wash,a.material,a.order_num,a.percent_j,a.percent_w,a.less_clause,a.more_clause,
+        a.delivery_date,a.process_desc,a.prod_ord_file,a.orig_contract,a.box_ins,a.pack_ins,a.style_drawing,a.size_chart,
+        a.process_quota,a.notity_date,a.batch,a.add_proportion,a.pattern_code,a.opr_name,a.opr_date,
+        a.prod_plan_seq,a.status,a.state,a.remark,a.ribbon_color,a.wash_stream,a.production_certificate,a.allow_loss_per,
+        case when b.cust_name is null then a.cust_id else b.cust_name end as cust_name,
+        c.sew_fac,c.bach_fac,c.pack_fac,c.sew_fac_name,c.bach_fac_name,c.pack_fac_name,
+        c.sew_delivery_date,c.sew_start_date,c.bach_delivery_date,c.pack_delivery_date,c.plan_check,c.purchase_check,
+        c.tech_check,c.trade_check,c.plan_check_date, c.purchase_check_date,c.tech_check_date,c.trade_check_date,
+        c.seq_no as plan_seq_no,c.state as plan_state,
+        d.order_date as order_date,d.deli_date,f.value as column_value,g.country,e.ins_num,
+        case when d.order_id is null then a.ord_seq_no else d.order_id end as order_id,
+        case when psl.cut_num =0 or psl.cut_num is null then '0' else '1' end as is_used,
+        a.opr_merchandiser,a.transportation_way,a.check_prod_date,a.fob_deal_date,a.prodStatus,
+        a.sxyxsh,a.fzyxsh,a.mlfl,a.ksfl,a.sxff,
+        (select seq_no from order_operator op where op.account=#account# and op.ord_seq_no=a.ord_seq_no and 
+        	op.prod_ord_seq = a.prod_ord_seq) as myorder
+        from prod_ord_info a
+        left join bas_cust_list b on a.cust_id =b.cust_id
+        left join
+        (select a.*,b.name as sew_fac_name,c.name as bach_fac_name,d.name as pack_fac_name
+            from prod_plan_info a
+            left join sys_grps_info b on a.sew_fac = b.grp_id
+            left join sys_grps_info c on a.bach_fac = c.grp_id
+            left join sys_grps_info d on a.pack_fac = d.grp_id
+        )c on a.prod_ord_seq =c.prod_ord_seq
+        left join ord_bas_info d on a.ord_seq_no =d.order_id
+        left join (select sum(ins_num) as ins_num,prod_ord_seq from prod_bas_info
+        group by prod_ord_seq) e on a.prod_ord_seq = e.prod_ord_seq 
+        left join (select wm_concat(distinct country) as country , prod_ord_seq from prod_bas_info where country is not null  group by prod_ord_seq) g on a.prod_ord_seq = g.prod_ord_seq
+        left join (select sum(real_cut_num)as cut_num ,order_id from prodord_sche_list group by order_id) psl on psl.order_id = a.ord_seq_no
+        left join prod_sub_info f on a.prod_ord_seq = f.id
+        where a.state !='1'
+        <isEqual prepend="and" property="fromFlag" compareValue="1"> <!-- fromFlag为1：查询条件来自详细查询 -->
+            a.prod_ord_seq in ($prodords$)
+        </isEqual>
+        <isNotEqual property="fromFlag" compareValue="1">
+	        <isNotEmpty prepend="" property="isManageProdOrd">
+	        	<isNotEmpty prepend="AND" property="prodstatus">
+	        		a.prodstatus in ($prodstatus$)
+	        	</isNotEmpty>
+		        <isNotEmpty prepend="AND" property="prod_ord_seq">
+		            a.prod_ord_seq like '%$prod_ord_seq$%'
+		        </isNotEmpty>
+		        <isNotEmpty prepend="AND" property="style_no">
+		            a.style_no like '%$style_no$%'
+		        </isNotEmpty>
+	        </isNotEmpty>
+	        <isEmpty prepend="AND" property="isHistory">
+	        	a.historystatus != '1'
+	        </isEmpty>
+	        <isEmpty prepend="" property="isManageProdOrd">
+		        <isNotEmpty prepend="AND" property="seq_no">
+		            a.seq_no=#seq_no#
+		        </isNotEmpty>
+		        <isNotEmpty prepend="AND" property="prod_ord_seq">
+		            a.prod_ord_seq=#prod_ord_seq#
+		        </isNotEmpty>
+		        <isNotEmpty prepend="AND" property="cust_id">
+		            a.cust_id in ($cust_id$)
+		        </isNotEmpty>
+		        <isNotEmpty prepend="AND" property="country">
+		            b.country =#country#
+		        </isNotEmpty>
+		        <isNotEmpty prepend="AND" property="cust_name">
+		            b.cust_name like '%$cust_name$%'
+		        </isNotEmpty>
+		        <isNotEmpty prepend="AND" property="belong_grp">
+		            (
+		            order_id in
+		            (select ord_seq_no from prod_ord_info where prod_ord_seq in
+		            (select distinct prod_ord_seq from epc_day_list
+		            where trm_no in ( select trm_no from dev_trm_info where belong_grp like '$belong_grp$%' ))
+		            )
+		            or
+		            order_id in (select distinct order_id from ord_day_list where grp_id like '$belong_grp$%')
+		            )
+		        </isNotEmpty>
+		        <isNotEmpty prepend="AND" property="prod_ord_seq_list">
+		            a.prod_ord_seq in ($prod_ord_seq_list$)
+		        </isNotEmpty>
+		        <isNotEmpty prepend="AND" property="ord_seq_no">
+		            a.ord_seq_no = #ord_seq_no#
+		        </isNotEmpty>
+	        </isEmpty>
+	       	<isNotEmpty prepend="AND" property="ord_seq_no">
+		    	a.ord_seq_no like '%$ord_seq_no$%'
+		   	</isNotEmpty>
+	   	</isNotEqual>
+        order by myorder,a.seq_no desc
+    </select>
+
+    <select id="prodOrdExceport" parameterClass="map" resultClass="dto" remapResults="true">
+        	select a.seq_no,a.prod_ord_seq,a.brand,a.style_no,a.contract_id,a.ord_seq_no,a.area_no,
+		        a.article,a.classify,a.wash,a.material,a.order_num,a.percent_j,a.percent_w,a.less_clause,a.more_clause,
+		        a.delivery_date,a.process_desc,a.prod_ord_file,a.orig_contract,a.box_ins,a.pack_ins,a.style_drawing,a.size_chart,
+		        a.process_quota,a.notity_date,a.batch,a.add_proportion,a.pattern_code,a.opr_name,a.opr_date,
+		        a.prod_plan_seq,a.status,a.state,a.remark,a.ribbon_color,a.opr_merchandiser,a.transportation_way,a.check_prod_date,
+		        a.fob_deal_date,a.wash_stream,
+		        case when b.cust_name is null then a.cust_id else b.cust_name end as cust_name,
+		        (select distinct cust_name from bas_cust_list g where g.cust_id = a.cust_id) as cust_id,
+		        (select distinct name from sys_grps_info g where g.grp_id = c.sew_fac)as sew_fac,
+		        (select distinct name from sys_grps_info g where g.grp_id = c.bach_fac)as bach_fac,
+		        (select distinct name from sys_grps_info g where g.grp_id = c.pack_fac)as pack_fac,c.sew_start_date,c.sew_delivery_date,c.bach_delivery_date,
+		        c.pack_delivery_date,c.plan_check,c.purchase_check,c.tech_check,c.trade_check,c.plan_check_date,
+		        c.purchase_check_date,c.tech_check_date,c.trade_check_date,c.seq_no as plan_seq_no,c.state as plan_state,
+		        d.order_date as order_date,f.value as column_value,
+		        case when d.order_id is null then a.ord_seq_no else d.order_id end as order_id,
+		        case when e.cut_num =0 then '0' else '1' end as is_used,
+		        a.sxyxsh,a.fzyxsh,a.mlfl,a.ksfl,a.sxff
+	        from PROD_ORD_INFO a
+	        left join BAS_CUST_LIST b on b.cust_id =a.cust_id
+	        left join PROD_PLAN_INFO c on c.prod_ord_seq =a.prod_ord_seq
+	        left join ORD_BAS_INFO d on d.seq_no =a.ord_seq_no
+	        left join (select max(cut_num) as cut_num,prod_ord_seq from prod_bas_info group by prod_ord_seq) e
+	        on a.prod_ord_seq = e.prod_ord_seq
+	        left join prod_sub_info f on a.prod_ord_seq = f.id
+	        where a.state !='1'
+        <isNotEmpty prepend="AND" property="prod_ord_seq">
+            a.prod_ord_seq = #prod_ord_seq#
+        </isNotEmpty>
+    </select>
+
+    <select id="queryProdBasInfo4RealNum" parameterClass="map" resultClass="dto">
+        select country,COLOR,IN_LENGTH,WAIST,REAL_NUM From PROD_BAS_INFO
+        where prod_ord_seq=#prod_ord_no# and state !='1'
+    </select>
+
+    <select id="queryProdBasInfo4OrdNum" parameterClass="map" resultClass="dto" remapResults="true">
+        select a.country,a.COLOR,a.IN_LENGTH,a.WAIST,a.ORD_NUM
+        From PROD_BAS_INFO a
+        where a.prod_ord_seq=#prod_ord_seq# and a.state !='1'
+    </select>
+
+
+    <select id="queryProdBasInfo4InsNum" parameterClass="map" resultClass="dto" remapResults="true">
+        select a.country,a.COLOR,a.IN_LENGTH,a.WAIST,a.INS_NUM,
+        case when a.cut_num is null then 0 else a.cut_num end as cut_num,b.real_cut_num,b.draw_num,b.sew_num,
+        b.bach_accept_num,b.bach_delivery_num,b.pack_accept_num,b.f_product_num,b.b_product_num
+        From PROD_BAS_INFO a
+        left join prod_sche_list b on a.product_id = b.product_id
+        where a.prod_ord_seq=#prod_ord_seq# and a.state !='1'
+        order by a.product_id
+    </select>
+    <select id="queryProdBasInfoExceport" parameterClass="map" resultClass="dto" remapResults="true">
+        select a.country,a.COLOR,a.IN_LENGTH,a.WAIST,a.INS_NUM ord_num,
+        case when a.cut_num is null then 0 else a.cut_num end as cut_num,b.real_cut_num,b.draw_num,b.sew_num,
+        b.bach_accept_num,b.bach_delivery_num,b.pack_accept_num,b.f_product_num,b.b_product_num
+        From PROD_BAS_INFO a
+        left join prod_sche_list b on a.product_id = b.product_id
+        where a.prod_ord_seq=#prod_ord_seq# and a.state !='1'
+        order by a.product_id
+    </select>
+    <select id="queryProdBasInfo4Row" parameterClass="map" resultClass="dto" remapResults="true">
+        select color,in_length,country ,MAX(SEQ_NO)From PROD_BAS_INFO
+        where prod_ord_seq=#prod_ord_seq# and state != '1'
+        GROUP BY color,in_length,country
+        ORDER BY MAX(SEQ_NO)
+    </select>
+
+    <select id="queryProdOrdInfoCount" parameterClass="map" resultClass="java.lang.Integer">
+        SELECT count(*) FROM PROD_ORD_INFO
+    </select>
+
+    <!-- 获取生产通知单最大号 -->
+    <select id="getProdOrdMaxSeqNo" parameterClass="map" resultClass="java.lang.String">
+        SELECT max(seq_no) FROM PROD_ORD_INFO
+    </select>
+
+    <!-- 获取生产计划最大号 -->
+    <select id="getProdBasMaxSeqNo" parameterClass="map" resultClass="java.lang.String">
+        SELECT max(product_id) FROM PROD_BAS_INFO where
+        PROD_ORD_SEQ = #prod_ord_seq#
+    </select>
+
+    <!-- 获取生产计划信息最大号 -->
+    <select id="getProdPlanMaxSeqNo" parameterClass="map" resultClass="java.lang.String">
+        SELECT max(to_number(seq_no)) FROM PROD_PLAN_INFO
+    </select>
+
+    <!-- 获取产品信息最大款号 -->
+    <select id="getProdBasInfoMaxStyleSeqNo" parameterClass="map" resultClass="Integer">
+        SELECT max(style_no_seq_no) FROM prod_bas_info where prod_ord_seq = #prod_ord_seq#
+    </select>
+
+    <!-- 获取产品信息最大号 -->
+    <select id="getProdBasInfoMaxInfo4Color" parameterClass="map" resultClass="dto">
+        SELECT max(color_seq_no) as max_color_seq_no
+        FROM prod_bas_info
+        where prod_ord_seq = #prod_ord_seq# and style_no_seq_no = #style_no_seq_no#
+        <isNotEmpty prepend="and" property="color">
+            color != #color#
+        </isNotEmpty>
+        <isEmpty prepend="and" property="color">
+            color is not null
+        </isEmpty>
+    </select>
+    <!-- 获取产品信息最大号 -->
+    <select id="getProdBasInfoMaxInfo4ClothSize" parameterClass="map" resultClass="dto">
+        SELECT max(CLOTH_SIZE_SEQ_NO) as max_cloth_size_seq_no
+        FROM prod_bas_info
+        where prod_ord_seq = #prod_ord_seq# and style_no_seq_no = #style_no_seq_no#
+
+        <isNotEmpty prepend="and" property="waist">
+            <isNotEmpty property="in_length">
+                (waist!=#waist# or in_length!= #in_length#)
+            </isNotEmpty>
+            <isEmpty property="in_length">
+                (waist!=#waist# and in_length is null)
+            </isEmpty>
+        </isNotEmpty>
+    </select>
+    <!-- 获取产品信息最大号 -->
+    <select id="getProdBasInfoMaxInfo4Country" parameterClass="map" resultClass="dto">
+        SELECT
+        max(COUNTRY_SEQ_NO) as max_country_seq_no
+        FROM prod_bas_info
+        where prod_ord_seq = #prod_ord_seq# and style_no_seq_no = #style_no_seq_no#
+        <isNotEmpty prepend="and" property="country">
+            country != #country#
+        </isNotEmpty>
+        <isEmpty prepend="and" property="country">
+            country is not null
+        </isEmpty>
+    </select>
+
+    <!-- 获取产品信息最大号 -->
+    <select id="getProdBasInfoMaxInfo4Print" parameterClass="map" resultClass="dto">
+        SELECT max(PRINT_SEQ_NO) as max_print_seq_no
+        FROM prod_bas_info
+        where prod_ord_seq = #prod_ord_seq# and style_no_seq_no = #style_no_seq_no#
+        <isNotEmpty prepend="and" property="print">
+            print != #print#
+        </isNotEmpty>
+        <isEmpty prepend="and" property="print">
+            print is not null
+        </isEmpty>
+    </select>
+    <!-- 获取产品信息最大号 -->
+    <select id="getProdBasInfoMaxInfo4Wash" parameterClass="map" resultClass="dto">
+        SELECT
+        max(WASH_SEQ_NO) as max_wash_seq_no
+        FROM prod_bas_info
+        where prod_ord_seq = #prod_ord_seq# and style_no_seq_no = #style_no_seq_no#
+        <isNotEmpty prepend="and" property="wash">
+            wash != #wash#
+        </isNotEmpty>
+        <isEmpty prepend="and" property="wash">
+            wash is not null
+        </isEmpty>
+    </select>
+    <!-- 获取产品信息最大号 -->
+    <select id="getProdBasInfoMaxInfo4color" parameterClass="map" resultClass="dto">
+        SELECT max(color_seq_no) as max_color_seq_no,max(CLOTH_SIZE_SEQ_NO) as max_cloth_size_seq_no,
+        max(COUNTRY_SEQ_NO) as max_country_seq_no,max(PRINT_SEQ_NO) as max_print_seq_no,
+        max(WASH_SEQ_NO) as max_wash_seq_no
+        FROM prod_bas_info
+        where prod_ord_seq = #prod_ord_seq# and style_no_seq_no = #style_no_seq_no#
+        <isNotEmpty prepend="and" property="color">
+            color = #color#
+        </isNotEmpty>
+        <isNotEmpty prepend="and" property="waist">
+            (in_length = #in_length# and waist = #waist#)
+        </isNotEmpty>
+        <isNotEmpty prepend="and" property="country">
+            country = #country#
+        </isNotEmpty>
+        <isNotEmpty prepend="and" property="print">
+            print = #print#
+        </isNotEmpty>
+        <isNotEmpty prepend="and" property="wash">
+            wash = #wash#
+        </isNotEmpty>
+    </select>
+
+
+    <!--插入生产通知单信息 -->
+    <insert id="insertProdOrdInfo" parameterClass="dto">
+     insert into PROD_ORD_INFO (
+        SEQ_NO,PROD_ORD_SEQ,CUST_ID,AREA_NO,CONTRACT_ID,ORD_SEQ_NO,BRAND,BATCH,STYLE_NO,ARTICLE,CLASSIFY,
+        WASH,MATERIAL,ORDER_NUM,PERCENT_J,PERCENT_W,LESS_CLAUSE,MORE_CLAUSE,NOTITY_DATE,
+        ORIG_CONTRACT,PROCESS_QUOTA,PATTERN_CODE,STYLE_DRAWING,SIZE_CHART,PROCESS_DESC,PACK_INS,
+        BOX_INS,OPR_NAME,OPR_DATE,PROD_PLAN_SEQ,STATUS,STATE,ADD_PROPORTION,REMARK,OPR_MERCHANDISER,
+        TRANSPORTATION_WAY,CHECK_PROD_DATE,FOB_DEAL_DATE,WASH_STREAM,RIBBON_COLOR,NEW_OPR_DATE,ACCOUNT,PRODSTATUS,ALLOW_LOSS_PER,
+        PROD_ORD_FILE,PROD_ORD_FILE_ALIAS,KSFL,MLFL,SXFF,SXYXSH,FZYXSH)
+        values
+        (
+        #seq_no#,#prod_ord_seq#,#cust_id#,#area_no#,#contract_id#,#ord_seq_no#,#brand#,#batch#,#style_no#,
+        #article#,#classify#,#wash#,#material#,#order_num#,#percent_j#,#percent_w#,#less_clause#,#more_clause#,
+        #notity_date#,#orig_contract#,#process_quota#,#pattern_code#,
+        #style_drawing#,#size_chart#,#process_desc#,#pack_ins#,#box_ins#,
+        #opr_name#,#opr_date#,#prod_plan_seq#,#status#,#state#,#add_proportion#,#remark#,#opr_merchandiser#,
+        #transportation_way#,#check_prod_date#,#fob_deal_date#,#wash_stream#,#ribbon_color#,#new_opr_date#,#account#,#prodstatus#,#allow_loss_per#,
+        #prod_ord_file#,#prod_ord_file_alias#,#ksfl#,#mlfl#,#sxff#,#sxyxsh#,#fzyxsh#) 
+    </insert>
+
+    <!--插入生产计划信息 -->
+    <insert id="insertProdPlanInfo" parameterClass="dto">
+        insert into PROD_PLAN_INFO (
+        SEQ_NO,PROD_ORD_SEQ,SEW_FAC,BACH_FAC,PACK_FAC,SEW_DELIVERY_DATE,
+        BACH_DELIVERY_DATE,PACK_DELIVERY_DATE,PLAN_CHECK,PURCHASE_CHECK,TRADE_CHECK,TECH_CHECK,
+        PLAN_CHECK_DATE,PURCHASE_CHECK_DATE,TECH_CHECK_DATE,TRADE_CHECK_DATE,STATE,SEW_START_DATE)
+        values
+        (#plan_seq_no#,#prod_ord_seq#,#sew_fac#,#bach_fac#,#pack_fac#,#sew_delivery_date#,
+        #bach_delivery_date#,#pack_delivery_date#,#plan_check#,#purchase_check#,#trade_check#,#tech_check#,
+        #plan_check_date#,#purchase_check_date#,#tech_check_date#,#trade_check_date#,#state#,#sew_start_date#)
+    </insert>
+
+    <!-- 生产通知单删除 -->
+    <update id="deleteProdOrdInfo" parameterClass="dto">
+        UPDATE PROD_ORD_INFO
+        <dynamic prepend="SET">
+            <isNotEmpty prepend="," property="state">
+                state =#state#
+            </isNotEmpty>
+        </dynamic>
+        <dynamic prepend="WHERE">
+            <isNotEmpty prepend="AND" property="seq_no">
+                seq_no =#seq_no#
+            </isNotEmpty>
+        </dynamic>
+    </update>
+	
+
+    <!-- 生产通知单基本信息修改 -->
+    <update id="updateProdOrdInfo" parameterClass="dto">
+      	UPDATE PROD_ORD_INFO set
+	        opr_date =#opr_date#,opr_name=#opr_name#,account=#account#,
+	        new_opr_date=#new_opr_date#,cust_id=#cust_id#,brand =#brand#,batch =#batch#,wash = #wash#,
+	        add_proportion =#add_proportion#,allow_loss_per = #allow_loss_per# ,area_no =#area_no#,contract_id =#contract_id#,
+	        percent_w = #percent_w#,percent_j = #percent_j#,ord_seq_no =#ord_seq_no#,style_no =#style_no#,
+	        article =#article#,classify =#classify#,material =#material#,order_num =#order_num#,
+	        delivery_date =#delivery_date#,notity_date =#notity_date#,remark = #remark#,ribbon_color=#ribbon_color#,
+	        wash_stream=#wash_stream#,less_clause=#less_clause#,more_clause=#more_clause#,opr_merchandiser=#opr_merchandiser#,
+	        transportation_way=#transportation_way#,check_prod_date = #check_prod_date#,fob_deal_date=#fob_deal_date#,
+	        prodStatus=#prodstatus#,fzyxsh=#fzyxsh#,sxyxsh=#sxyxsh#,mlfl=#mlfl#,ksfl=#ksfl#,sxff=#sxff#
+        where seq_no = #seq_no#
+    </update>
+
+    <!-- 生产计划确认及修改 -->
+    <update id="updateProdPlanInfo" parameterClass="dto">
+    UPDATE PROD_PLAN_INFO set
+        sew_fac =#sew_fac#,bach_fac =#bach_fac#,pack_fac =#pack_fac#,sew_delivery_date =#sew_delivery_date#,
+        sew_start_date=#sew_start_date#,
+        bach_delivery_date =#bach_delivery_date#,pack_delivery_date =#pack_delivery_date#,
+        plan_check =#plan_check#,purchase_check =#purchase_check#,trade_check =#trade_check#,
+        plan_check_date =#plan_check_date#,purchase_check_date =#purchase_check_date#,
+        trade_check_date =#trade_check_date#
+        <dynamic prepend="WHERE">
+            <isNotEmpty prepend="AND" property="prod_plan_seq">
+                seq_no =#prod_plan_seq#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="prod_ord_seq">
+                prod_ord_seq =#prod_ord_seq#
+            </isNotEmpty>
+        </dynamic>
+    </update>
+
+    <!-- 获取订单信息 -->
+    <select id="getOrdIdCombox" parameterClass="map" resultClass="dto"
+            remapResults="true">
+        select order_id as text, seq_no as value from ORD_BAS_INFO
+        where state !='1' order by seq_no
+    </select>
+	<!-- 查询生产通知单文件 -->
+	<select id="queryProdOrdInfoFileInfo" parameterClass="dto" resultClass="dto">
+		select prod_ord_file ,prod_ord_file_alias, orig_contract ,orig_contract_alias ,process_quota ,process_quota_alias,
+                pattern_code ,pattern_code_alias,style_drawing,style_drawing_alias,size_chart ,size_chart_alias,process_desc ,
+        		process_desc_alias,pack_ins ,pack_ins_alias ,box_ins ,box_ins_alias ,production_certificate ,
+        		production_certificate_alias,yangka,yangka_alias
+        from prod_ord_info
+        where prod_ord_seq=#prod_ord_seq#
+	</select>
+    <!-- 更改生产通知单文件信息 -->
+    <update id="updateProdOrdInfoFileInfo" parameterClass="dto">
+        UPDATE PROD_ORD_INFO
+        <dynamic prepend="SET">
+        	<isNotEmpty prepend="," property="prod_ord_file">
+        		prod_ord_file = #prod_ord_file_name#
+        	</isNotEmpty>
+        	<isNotEmpty prepend="," property="prod_ord_file">
+        		prod_ord_file_alias=#prod_ord_file_alias#
+        	</isNotEmpty>
+            <isNotEmpty prepend="," property="orig_contract">
+                orig_contract = #orig_contract_name#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="orig_contract">
+        		orig_contract_alias = #orig_contract_alias#
+        	</isNotEmpty>
+            <isNotEmpty prepend="," property="process_quota">
+                process_quota = #process_quota_name#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="process_quota">
+        		process_quota_alias=#process_quota_alias#
+        	</isNotEmpty>
+            <isNotEmpty prepend="," property="pattern_code">
+                pattern_code = #pattern_code_name#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="pattern_code">
+        		pattern_code_alias=#pattern_code_alias#
+        	</isNotEmpty>
+            <isNotEmpty prepend="," property="style_drawing">
+                style_drawing = #style_drawing_name#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="style_drawing">
+        		style_drawing_alias=#style_drawing_alias#
+        	</isNotEmpty>
+            <isNotEmpty prepend="," property="size_chart">
+                size_chart = #size_chart_name#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="size_chart">
+        		size_chart_alias=#size_chart_alias#
+        	</isNotEmpty>
+            <isNotEmpty prepend="," property="process_desc">
+                process_desc = #process_desc_name#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="process_desc">
+        		process_desc_alias=#process_desc_alias#
+        	</isNotEmpty>
+            <isNotEmpty prepend="," property="pack_ins">
+                pack_ins = #pack_ins_name#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="pack_ins">
+        		pack_ins_alias = #pack_ins_alias#
+        	</isNotEmpty>
+            <isNotEmpty prepend="," property="box_ins">
+                box_ins = #box_ins_name#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="box_ins">
+        		box_ins_alias =#box_ins_alias#
+        	</isNotEmpty>
+            <isNotEmpty prepend="," property="production_certificate">
+            	production_certificate = #production_certificate_name#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="production_certificate">
+        		production_certificate_alias = #production_certificate_alias#
+        	</isNotEmpty>
+        	<isNotEmpty prepend="," property="yangka">
+        	   yangka = #yangka_name#
+        	</isNotEmpty>
+        	<isNotEmpty prepend="," property="yangka">
+        	   yangka_alias = #yangka_alias#
+        	</isNotEmpty>
+        </dynamic>
+        where prod_ord_seq=#prod_ord_seq#
+    </update>
+
+    <!--插入产品信息 -->
+    <insert id="insertProdBasInfo" parameterClass="dto">
+        insert into PROD_BAS_INFO (
+        seq_no,product_id,ord_seq_no,prod_ord_seq,country,style_no_seq_no,style_no,color_seq_no,color,cloth_size_seq_no,
+        in_length,waist,ord_num,ins_num,real_num,cut_num,state)
+        values
+        (SEQ_PROD_BAS_INFO_SEQ_NO.NEXTVAL,#product_id#,#ord_seq_no#,#prod_ord_seq#,#country#,#style_no_seq_no#,#style_no#,#color_seq_no#,#color#,
+        #cloth_size_seq_no#, #in_length#,#waist#,#ord_num#,#ins_num#,#real_num#,0,#state#)
+    </insert>
+
+    <!--插入服装信息 -->
+    <insert id="insertBasClothInfo" parameterClass="dto">
+        insert into BAS_CLOTH_INFO (
+        PROD_ORD_SEQ,style_no_seq_no,STYLE_NO,COLOR_SEQ_NO,COLOR,CLOTH_SIZE_SEQ_NO,IN_LENGTH,
+        WAIST,CLOTH_SIZE,STATE)
+        values
+        (#prod_ord_seq#,#style_no_seq_no#,#style_no#,#color_seq_no#,#color#,#cloth_size_seq_no#,#in_length#,
+        #waist#,#cloth_size#,#state#)
+    </insert>
+	<!-- 删除订单 -->
+	<delete id="deleteOrdBasInfoByOrderId" parameterClass="dto">
+		delete from ord_bas_info where order_id = #ord_seq_no#
+	</delete>
+	
+	<!-- 删除生产通知单下的产品标签对应表 -->
+	<delete id="deleteEpcProdList" parameterClass="dto">
+		delete from epc_prod_list a where a.product_id in(select product_id from prod_bas_info where prod_ord_seq = #prod_ord_seq#) 
+	</delete>
+	
+	<!-- 删除生产通知单下的产品 -->
+	<delete id="deleteProdBasInfoByOrderId" parameterClass="dto">
+		delete from prod_bas_info where prod_ord_seq = #prod_ord_seq#
+	</delete>
+	
+	<!-- 删除生产通知单附加信息 -->
+	<delete id="deleteProdSubInfo" parameterClass="dto">
+		delete from prod_sub_info a where a.id = #prod_ord_seq#
+	</delete>
+	
+	<!-- 删除生产通知单 -->
+	<delete id="deleteProdOrdInfoByOrderId" parameterClass="dto">
+		delete from prod_ord_info where prod_ord_seq  = #prod_ord_seq#
+	</delete>
+	
+	<!-- 删除生产计划表-->
+	<delete id="deleteProdPlanInfo" parameterClass="dto">
+		delete from prod_plan_info a where a.prod_ord_seq = #prod_ord_seq#
+	</delete>
+	
+    <!-- 删除某个生产通知单下的产品信息 -->
+    <delete id="deleteProdBasInfo" parameterClass="dto">
+        delete from PROD_BAS_INFO where prod_ord_seq =#prod_ord_seq#
+    </delete>
+
+    <!--插入订单信息 -->
+    <insert id="insertOrdBasInfo4ProdOrd" parameterClass="dto">
+        merge into ORD_BAS_INFO a using (select '1' from dual) t on
+        (a.order_id = #order_id#)
+        when matched then
+        update set flag = #flag#
+        when not matched then
+        insert(
+        seq_no,order_date,cust_id,brand,contract_id,order_id,style_no,article,classify,material,
+        order_num,percent,deli_date,merchandier,approved,assign_num,box_ins,point_notes,
+        style_drawing,size_chart,accessory_list,process_quota,process_desc,pattern_code,
+        verify,prod_plan,num_detail_list,flag,state,ribbon_color)
+        values
+        (#seq_no#,#order_date#,#cust_id#,#brand#,#contract_id#,#order_id#,#style_no#,#article#,
+        #classify#,#material#,#order_num#,#percent#,#deli_date#,#merchandier#,#approved#,
+        #assign_num#,#box_ins#,#point_notes#,#style_drawing#,#size_chart#,#accessory_list#,
+        #process_quota#,#process_desc#,#pattern_code#,#verify#,#prod_plan#,#num_detail_list#,
+        #flag#,#state#,#ribbon_color#)
+    </insert>
+
+    <select id="queryProdSubInfo" parameterClass="dto" resultClass="dto">
+        select seq_no,id,value,flag,state from prod_sub_info
+        <dynamic prepend="where">
+            <isNotEmpty prepend="and" property="prod_ord_seq">
+                id = #prod_ord_seq#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="flag">
+                flag = #flag#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="state">
+                state = #state#
+            </isNotEmpty>
+        </dynamic>
+    </select>
+
+    <insert id="insertProdSubInfo" parameterClass="dto">
+        insert into prod_sub_info (seq_no,id,value,flag,state)
+        values (#seq_no#,#id#,#value#,#flag#,#state#)
+    </insert>
+
+    <update id="updateProdSubInfo" parameterClass="dto">
+        update prod_sub_info set value = #value# where id = #id#
+    </update>
+	<!-- 更新产品信息 -->
+	<update id="updateProdBasInfo" parameterClass="dto">
+		update prod_bas_info set style_no = #style_no#  where prod_ord_seq = #prod_ord_seq#
+	</update>
+    <select id="getProdBasInfoCombo" parameterClass="dto" resultClass="dto">
+        select a.prod_ord_seq,a.style_no,a.style_no_seq_no,a.country,a.country_seq_no,a.color,a.color_seq_no,
+        a.in_length,a.waist,a.cloth_size_seq_no from prod_bas_info a
+        left join (select a.*,b.country,b.cust_name from ord_bas_info a
+        left join bas_cust_list b on a.cust_id = b.cust_id) b on a.ord_seq_no = b.order_id
+        <dynamic prepend="where">
+        	<isNotEmpty prepend="AND" property="ismyorder">
+        		b.order_id in (select ord_seq_no from order_operator where account=#account#)
+        	</isNotEmpty>
+        	<isNotEmpty prepend="AND" property="orderstatus">
+        		b.order_id in (select ord_seq_no from prod_ord_info where prodstatus = #orderstatus#)
+        	</isNotEmpty>
+            <isNotEmpty prepend="AND" property="country">
+                b.country =#country#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="cust_name">
+                b.cust_name like '%$cust_name$%'
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="cust_id">
+                b.cust_id = '$cust_id$'
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="ord_seq_no">
+                a.ord_seq_no = '$ord_seq_no$'
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="belong_grp">
+                b.order_id in
+                (select ord_seq_no from prod_ord_info where prod_ord_seq in
+                (select distinct prod_ord_seq from epc_day_list
+                where trm_no in ( select trm_no from dev_trm_info where belong_grp like '$belong_grp$%' )
+                ))
+            </isNotEmpty>
+        </dynamic>
+    </select>
+	<!--  查询订单下的生产通知单基本信息 -->
+	<select id="queryProdOrdByOrdSeqNo" parameterClass="map" resultClass="dto">
+		select ord_seq_no,prod_ord_seq from prod_ord_info where ord_seq_no = #ord_seq_no#
+	</select>
+	<!-- 删除订单的订单流水表 -->
+	<delete id="deleteProdOrdStream" parameterClass="dto">
+		delete from ord_day_list where order_id = #ord_seq_no#
+	</delete>
+	<!-- 删除生产通知单的产品流水表 -->
+	<delete id="deleteProductStream" parameterClass="dto">
+		delete from epc_day_list where prod_ord_seq = #prod_ord_seq#
+	</delete>
+	<!-- 删除统计数据 -->
+	<statement id="deleteDayListAndScheList" parameterClass="dto">
+		begin
+			delete from prod_day_sche where product_id in
+				(select product_id from prod_bas_info where prod_ord_seq=#prod_ord_seq#);
+			delete from prod_sche_list where  product_id in
+				(select product_id from prod_bas_info where prod_ord_seq=#prod_ord_seq#);
+			delete from ord_day_sche where order_id = #ord_seq_no#;
+			delete from ord_sche_list where order_id = #ord_seq_no#;
+		 	delete from prodord_day_sche where seq_no in (select a.seq_no from prodord_day_sche a left join prod_ord_info b 
+				on a.order_id= b.ord_seq_no where b.prod_ord_seq = #prod_ord_seq#);
+         	delete from prodord_sche_list where seq_no in (select a.seq_no from prodord_sche_list a left join prod_ord_info b 
+				on a.order_id= b.ord_seq_no where b.prod_ord_seq = #prod_ord_seq#); 
+		end;
+	</statement>
+	<select id="queryOprNameBySeqno" parameterClass ="dto" resultClass="dto" remapResults="true">
+		select * from (select OPR_MERCHANDISER, seq_no,prod_ord_seq,ord_seq_no,account,new_opr_date from prod_ord_info 
+		<dynamic prepend="where">
+			<isNotEmpty prepend="and" property="seq_no">
+				 seq_no = #seq_no#
+			</isNotEmpty>
+			<isEmpty prepend="and" property="seq_no">
+				prod_ord_seq = #prod_ord_seq#
+			</isEmpty>
+		</dynamic>)
+	</select>
+
+	<!-- 同步交接记录中的客户信息 -->
+	<update id="updateOrdDayListCustId" parameterClass="dto">
+		<![CDATA[
+		update ord_day_list a
+			 set a.cust_id = #cust_id#  , a.cust_name= (select c.cust_name from bas_cust_list c where c.cust_id=#cust_id# ) 
+		where
+			 a.order_id=#ord_seq_no# 
+			 ]]>
+	</update>
+	<!-- 同步交接记录中的客户信息 -->
+	<update id="updateOrdBasInfoCustId" parameterClass="dto">
+		<![CDATA[
+		update ord_bas_info a
+			 set a.cust_id = #cust_id#,a.style_no = #style_no#,article=#article#,classify=#classify#,
+			 material = #material#,merchandier=#opr_merchandiser#
+		where
+			 a.order_id=#ord_seq_no# 
+			 ]]>
+	</update>
+	<!-- 更新数量修改备注 -->
+	<update id="updateNumeditRemark" parameterClass="dto">
+		<![CDATA[
+		update prod_ord_info 
+			 set NUMEDIT_REMARK = #numeditRemark# 
+		where
+			 ord_seq_no=#ord_seq_no# and state=0 
+			 ]]>
+	</update>
+	<!-- 查询数量修改备注 -->
+	<select id="queryNumeditRemark" resultClass="Dto" parameterClass="Dto">
+		select NUMEDIT_REMARK from prod_ord_info where ORD_SEQ_NO= #ord_seq_no#
+	</select>
+	<!--订单删除的日志信息 -->
+    <insert id="logProdDelete" parameterClass="dto">
+    	insert into log_prod_delete (ord_seq_no,account,opr_date,reqCode,file_alais) 
+        values (#ord_seq_no#,#account#,#opr_date#,#reqCode#,(select  a.prod_ord_file_alias from prod_ord_info a where a.ord_seq_no= #ord_seq_no#))
+    </insert>
+    
+    <select id="queryProdOrd4check" parameterClass="map" resultClass="dto" remapResults="true">
+    	select * from prod_ord_info where prod_ord_seq = #prod_ord_seq# and state !='1'
+    </select>
+</sqlMap>

@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="
+	http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+	http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-2.5.xsd
+	http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-2.5.xsd">
+<!-- 登录日志统计任务 -->
+	<bean id="accountLoginQuartz" class="com.cnnct.quartz.rfid.service.impl.AccountLoginQuartz">
+        <property name="g4Dao" ref="g4Dao"></property>
+    </bean>
+    
+    <bean id="accountLoginQuartzDetail" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject">
+            <ref local="accountLoginQuartz"/>
+        </property>
+<!--        <property name="concurrent" value="false"></property>-->
+        <property name="targetMethod" value="quartzExecute">
+        </property>
+    </bean>
+    <!-- 统计处理触发器 -->
+    <bean id="accountLoginCronTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+      <property name="jobDetail">
+            <ref local="accountLoginQuartzDetail"/>
+      </property>
+      <property name="cronExpression">
+        <value>0 0 2 * * ?</value><!-- 凌晨两点处理 -->
+      </property>
+    </bean>
+	  <!-- 请求会话 -->
+    <bean id="logsession" class="com.cnnct.quartz.rfid.service.impl.SaveSessionQuartz">
+        <property name="g4Dao" ref="g4Dao"></property>
+    </bean>
+    
+    <bean id="logsessionQuartzDetail" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject">
+            <ref local="logsession"/>
+        </property>
+<!--        <property name="concurrent" value="false"></property>-->
+        <property name="targetMethod" value="quartzExecute">
+        </property>
+    </bean>
+    <!-- 保存日志触发器 -->
+    <bean id="logsessionCronTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+      <property name="jobDetail">
+            <ref local="logsessionQuartzDetail"/>
+      </property>
+      <property name="cronExpression">
+        <value>0/5 * * * * ?</value>
+      </property>
+    </bean>
+	
+	
+    <!-- 请求日志 -->
+    <bean id="logrequest" class="com.cnnct.quartz.rfid.service.impl.SaveRequestQuartz">
+        <property name="g4Dao" ref="g4Dao"></property>
+    </bean>
+    
+    <bean id="logRequestQuartzDetail" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject">
+            <ref local="logrequest"/>
+        </property>
+<!--        <property name="concurrent" value="false"></property>-->
+        <property name="targetMethod" value="quartzExecute">
+        </property>
+    </bean>
+    <!-- 保存日志触发器 -->
+    <bean id="logRequestCronTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+      <property name="jobDetail">
+            <ref local="logRequestQuartzDetail"/>
+      </property>
+      <property name="cronExpression">
+        <value>0/5 * * * * ?</value>
+      </property>
+    </bean>
+	<!-- 定时计算报表 -->	
+	<bean id="reportQuartz" class="com.cnnct.quartz.rfid.service.impl.ReportQuartz">
+		<property  name="g4Dao" ref="g4Dao" />
+	</bean>
+	<bean id="quartzDetail" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject">
+			<ref local="reportQuartz"/>
+		</property>
+		<!--  设置不并发处理相同的任务  -->
+<!--		<property name="concurrent" value="false"></property>-->
+		<property name="targetMethod" value="generateReport">
+		</property>
+	</bean>
+	<!-- cron触发器 -->
+	<bean id="cronTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+	  <property name="jobDetail">
+			<ref local="quartzDetail"/>
+	  </property>
+	  <property name="cronExpression">
+		<value>0/3 * * * * ?</value>
+	  </property>
+	</bean>
+
+    <!-- 定时计算日报表 -->
+    <bean id="reportOrdDayListQuartz" class="com.cnnct.quartz.rfid.service.impl.OrdDayScheQuartz">
+        <property  name="g4Dao" ref="g4Dao" />
+    </bean>
+    <bean id="quartzOrdDayListDetail" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject">
+            <ref local="reportOrdDayListQuartz"/>
+        </property>
+        <property name="concurrent" value="false"></property>
+        <property name="targetMethod" value="quartzExecute">
+        </property>
+    </bean>
+    <!-- cron触发器 -->
+    <bean id="ordDayListTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+        <property name="jobDetail">
+            <ref local="quartzOrdDayListDetail"/>
+        </property>
+        <property name="cronExpression">
+            <value>0/3 * * * * ?</value>
+        </property>
+    </bean>
+    
+	<!-- 生产通知单定时处理历史问题 -->
+	 <bean id="historyQuartz" class="com.cnnct.quartz.rfid.service.impl.HistoryQuartz">
+        <property  name="g4Dao" ref="g4Dao" />
+    </bean>
+    <bean id="historyQuartzMethod" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject">
+            <ref local="historyQuartz"/>
+        </property>
+<!--        <property name="concurrent" value="false"></property>-->
+        <property name="targetMethod" value="updateHistoryQuartz">
+        </property>
+    </bean>
+<!--     cron触发器 -->
+    <bean id="historyQuartzTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+        <property name="jobDetail">
+            <ref local="historyQuartzMethod"/>
+        </property>
+        <property name="cronExpression">
+            <value>0/10 * * * * ?</value>  <!-- 间隔十秒 -->  
+        </property>
+    </bean>
+    <!-- 退货数据处理 定时任务  -->
+    <bean id="rollbackOrderQuartz" class="com.cnnct.quartz.rfid.service.impl.RollbackOrderQuartz">
+        <property name="g4Dao" ref="g4Dao"></property>
+    </bean>
+    <bean id="rollbackQuartzMethod" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject">
+            <ref local="rollbackOrderQuartz"/>
+        </property>
+<!--        <property name="concurrent" value="false"></property>-->
+        <property name="targetMethod" value="rollback4orddaylist">
+        </property>
+    </bean>
+    <bean id="rollbackQuartzTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+        <property name="jobDetail">
+            <ref local="rollbackQuartzMethod"/>
+        </property>
+        <property name="cronExpression">
+            <value>0/10 * * * * ?</value>  <!-- 间隔十秒 -->  
+        </property>
+    </bean>
+<!--  定时检测数据  -->
+    <bean id="clearErrorDataQuartz" class="com.cnnct.quartz.rfid.service.impl.ClearErrorDataQuartz">
+        <property  name="g4Dao" ref="g4Dao" />
+    </bean>
+    <bean id="clearErrorDataMethod" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject">
+            <ref local="clearErrorDataQuartz"/>
+        </property>
+<!--        <property name="concurrent" value="false"></property>-->
+        <property name="targetMethod" value="quartzExecute">
+        </property>
+    </bean>
+    <bean id="clearErrorDataTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+        <property name="jobDetail">
+            <ref local="clearErrorDataMethod"/>
+        </property>
+        <property name="cronExpression">
+            <value>0 0/2 * * * ?</value>
+        </property>
+    </bean>
+      <!-- 定时更新订单状态 xutj -->
+    <bean id="prodstatusQuartz" class="com.cnnct.quartz.rfid.service.impl.ProdStatusQuartz">
+        <property  name="g4Dao" ref="g4Dao" />
+    </bean>
+    <bean id="prodstatusDetail" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject">
+            <ref local="prodstatusQuartz"/>
+        </property>
+        <property name="targetMethod" value="updateProdStatusInProdOrdInfo">
+        </property>
+    </bean>
+    <!-- cron触发器 -->
+    <bean id="prodstatusTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+        <property name="jobDetail">
+            <ref local="prodstatusDetail"/>
+        </property>
+        <property name="cronExpression">
+            <value>0 0 9 * * ?</value><!--每天9点-->
+        </property>
+    </bean>
+    
+      <!-- 与吊挂的数据同步任务xutj -->
+    <bean id="hungReportQuartz" class="com.cnnct.quartz.rfid.service.impl.HungReportQuartz">
+        <property  name="g4Dao" ref="g4Dao" />
+        <property  name="sDao" ref="sDao" />
+    </bean>
+    <bean id="sysHungReportByDay" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject">
+            <ref local="hungReportQuartz"/>
+        </property>
+        <property name="targetMethod" value="quartzExecute">
+        </property>
+    </bean>
+    <!-- cron触发器 -->
+    <bean id="hungReportTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+        <property name="jobDetail">
+            <ref local="sysHungReportByDay"/>
+        </property>
+        <property name="cronExpression">
+            <value>0/50 * * * * ?</value><!--每天8点-->
+        </property>
+    </bean>
+    
+	<bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+		<property name="triggers">
+			<list>
+		     <!--  	<ref local="accountLoginCronTrigger"></ref>
+				<ref local="cronTrigger"/> 
+			  <ref local="ordDayListTrigger"/>
+				<ref local="historyQuartzTrigger"/>
+                <ref local="rollbackQuartzTrigger"/>
+                <ref local="prodstatusTrigger"/>
+                <ref local="clearErrorDataTrigger"></ref>
+                <ref local="logRequestCronTrigger"></ref>
+                <ref local="logsessionCronTrigger"></ref>
+                 <ref local="hungReportTrigger"></ref>
+                 -->
+               
+                
+			</list>
+		</property>
+	</bean>
+</beans>

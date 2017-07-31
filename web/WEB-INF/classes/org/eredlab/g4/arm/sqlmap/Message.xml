@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<sqlMap>
+	<typeAlias alias="dto"
+		type="org.eredlab.g4.ccl.datastructure.impl.BaseDto" />
+	
+	<!-- 插入一条记录 -->
+    <insert id="insertMessOpenInfo" parameterClass="dto">
+        insert into MESSAGE_OPEN_INFO (SEQ_NO, GRP_ID, CRD_ISSU_FLAG, CRD_LOSS_FLAG,CRD_RELOSS_FLAG,CRD_LOGOUT_FLAG,CRD_SHATTER_FLAG,CRD_REPAIR_FLAG,RECHARGE_FLAG,REFUND_FLAG,CONSUME_FLAG,CWASWIPE_FLAG)
+        select coalesce(max(seq_no),0)+1, '$grp_id$', '0', '0','0','0','0','0','0','0','0','0' from  MESSAGE_OPEN_INFO
+    </insert>
+    
+    
+    	<!-- 查询 -->
+	<select id="getMessageList" parameterClass="map" resultClass="dto" remapResults="true">
+		SELECT grp_id,seq_no,crd_issu_flag,crd_loss_flag,crd_reloss_flag,crd_logout_flag,crd_shatter_flag,crd_repair_flag,recharge_flag,refund_flag,consume_flag,cwaswipe_flag
+		from MESSAGE_OPEN_INFO
+		where grp_id=#grp_id#
+	</select>
+	
+	
+		<!-- 根据主键更新-->
+	<update id="updateMessageOpenItem" parameterClass="dto">
+		UPDATE MESSAGE_OPEN_INFO
+		<dynamic prepend="SET">
+			<isNotEmpty prepend="," property="crd_issu_flag">
+				crd_issu_flag=#crd_issu_flag#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="crd_loss_flag">
+				crd_loss_flag=#crd_loss_flag#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="crd_reloss_flag">
+				crd_reloss_flag=#crd_reloss_flag#
+	         </isNotEmpty>
+			<isNotEmpty prepend="," property="crd_logout_flag">
+				crd_logout_flag=#crd_logout_flag#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="crd_shatter_flag">
+				crd_shatter_flag=#crd_shatter_flag#
+	         </isNotEmpty>
+			<isNotEmpty prepend="," property="crd_repair_flag">
+				crd_repair_flag=#crd_repair_flag#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="recharge_flag">
+				recharge_flag=#recharge_flag#
+	         </isNotEmpty>
+			<isNotEmpty prepend="," property="refund_flag">
+				refund_flag=#refund_flag#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="consume_flag">
+				consume_flag=#consume_flag#
+	         </isNotEmpty>
+	         <isNotEmpty prepend="," property="cwaswipe_flag">
+				cwaswipe_flag=#cwaswipe_flag#
+	         </isNotEmpty>
+		</dynamic>
+		WHERE seq_no= #seq_no# and grp_id=#grp_id#
+	</update>
+	  
+	  
+	  
+</sqlMap>

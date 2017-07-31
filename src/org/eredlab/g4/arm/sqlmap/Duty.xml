@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<!-- 参数管理手工映射SQL语句 -->
+<sqlMap>
+	<typeAlias alias="dto" type="org.eredlab.g4.ccl.datastructure.impl.BaseDto"/>
+	
+	<!-- 参数管理-查询参数列表 -->
+	<select id="queryDutyForManage" parameterClass="map" resultClass="dto">
+		SELECT   duty_id, duty_name,remark,deptperm
+		    FROM DUTY_GRPS_INFO  
+		   WHERE grp_id=#grp_id#
+		ORDER BY duty_name
+	</select>
+	
+	<select id="queryDutyForManageForPageCount" parameterClass="map" resultClass="java.lang.Integer">
+		SELECT count(*) as count
+		  FROM DUTY_GRPS_INFO  WHERE grp_id=#grp_id#
+	</select>
+	
+	<!-- 插入一条参数表记录 -->
+	<insert id="saveDutyItem" parameterClass="dto">
+		INSERT INTO DUTY_GRPS_INFO (
+		   grp_id, duty_id, duty_name,remark,deptperm)
+		VALUES (#grp_id#, #duty_id#, #duty_name#,#remark#,#deptperm#)
+	</insert>
+	
+	<!-- 删除参数表  -->
+	<delete id="deletDutyItem" parameterClass="map" >
+		DELETE FROM DUTY_GRPS_INFO
+		      WHERE grp_id = #grp_id#  and duty_id=#duty_id#
+	</delete>
+	
+	<!-- 根据主键更新参数表 -->
+	<update id="updateDutyItem" parameterClass="dto">
+        UPDATE DUTY_GRPS_INFO
+		SET duty_name = #duty_name#,deptperm=#deptperm#,remark = #remark#
+        WHERE grp_id = #grp_id#  and duty_id=#duty_id#
+	</update>
+	
+	  <select id="queryMaxDutyId" parameterClass="map"
+        resultClass="Integer">
+        select nvl(max(to_number(duty_id)),0)+1 as duty_id  from DUTY_GRPS_INFO
+        <dynamic prepend="where">
+            <isNotEmpty prepend="AND" property="grp_id">
+                grp_id = '$grp_id$'
+            </isNotEmpty>
+        </dynamic>
+    </select>
+    
+	<select id="queryMaxDutyIdMysql" parameterClass="map" resultClass="Integer">
+        select max(duty_id) as duty_id  from DUTY_GRPS_INFO 
+        <dynamic prepend="where">
+            <isNotEmpty prepend="AND" property="grp_id">
+                grp_id = '$grp_id$'
+            </isNotEmpty>
+        </dynamic>
+    </select>
+
+     <!-- 查询所有职务编号,名称 -->
+     <select id="getAllDuty" parameterClass="map" resultClass="dto">
+		SELECT duty_id as value,duty_name as text,deptperm
+		FROM DUTY_GRPS_INFO  where grp_id=#grp_id#
+	  </select>
+
+	<select id="getDutyId" parameterClass="map" resultClass="dto">
+		SELECT
+		duty_id
+		FROM DUTY_GRPS_INFO where grp_id=#grp_id# and
+		duty_name=#duty_name#
+	</select>
+
+	<select id="getDutyName" parameterClass="map" resultClass="java.lang.Integer">
+		SELECT count(*)
+		FROM DUTY_GRPS_INFO where grp_id=#grp_id# and
+		duty_name=#duty_name#
+	</select>
+	
+	<select id="getCountFromEauserByDuty" parameterClass="map" resultClass="java.lang.Integer">
+		SELECT count(*)
+		FROM eauser where grp_id=#grp_id# and
+		duty=#duty_id#
+	</select>
+
+    <select id="getDataPermByDuty" parameterClass="map" resultClass="dto">
+        select a.deptperm,a.duty_name,a.duty_id,b.userid,b.account,b.roleid,b.roletype,b.notes,b.num as special_num
+        from (select * from duty_grps_info where duty_id =#duty_id# and grp_id = #grp_id#)a inner join
+        (select a.grp_id,a.duty,a.account,a.userid,b.roleid,b.roletype,b.notes,c.num from eauser a left join
+            (select a.userid,a.roleid,b.roletype,b.notes from eauserrolemap a
+                left join eadatarole b on a.roleid = b.roleid) b
+            on a.userid = b.userid
+            left join (select count(*) as num ,userid  from eauserdataauthorize group by userid)c
+            on a.userid = c.userid
+        )b on a.grp_id = b.grp_id and a.duty_id = b.duty
+    </select>
+
+</sqlMap>

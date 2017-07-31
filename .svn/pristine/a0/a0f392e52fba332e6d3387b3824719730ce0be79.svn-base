@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<sqlMap>
+	<typeAlias alias="dto"
+			   type="org.eredlab.g4.ccl.datastructure.impl.BaseDto"/>
+	<!-- 查询水洗厂的报表： -->
+	<select id="queryOrdDayList4Excel" parameterClass="dto" resultClass="dto" >
+		select rownum,order_id,tr_date,tr_time,style_no,article,mark,amount,sure_name,driver,remark,destination,order_id,billno,submit_name,
+			(select cust_name from bas_cust_list b left join ord_bas_info c on b.cust_id = c.cust_id where c.order_id = a.order_id) as cust_name,
+			(select b.name from sys_grps_info b where a.grp_id = b.grp_id) as grp_name
+		from ord_day_list a where nature = #nature#
+		and tr_date between #start_date# and #end_date#
+	</select>
+    <!-- 水厂进出货统计数量 -->
+    <select id="queryWashStatisticsTotal" parameterClass="dto" resultClass="dto">
+        select nvl(sum(accept),0)as accept,nvl(sum(delivery),0)as delivery from
+            (select a.tr_date,a.amount as accept ,b.amount as delivery  from (select a.tr_date,sum(a.amount) as amount from ord_day_list a 
+            where nature = '4'  and state = '0'
+            <isNotEmpty prepend="AND" property="grp_name">
+                grp_id in (select grp_id from sys_grps_info where name in ($grp_name$))
+            </isNotEmpty>
+            and tr_date between #start_date# and #end_date#  
+            group by tr_date) a 
+            full join (select a.tr_date,sum(a.amount) as amount from ord_day_list a 
+            where nature='5' and state = '0'
+            <isNotEmpty prepend="AND" property="grp_name">
+                grp_id in (select grp_id from sys_grps_info where name in ($grp_name$))
+            </isNotEmpty>
+            and tr_date between #start_date# and #end_date#  
+            group by tr_date) b on a.tr_date= b.tr_date)
+    </select>
+	
+	<!-- 水洗厂进出货汇总，按照交易日期分组-->
+	<select id="queryWashStatistics" parameterClass="dto" resultClass="dto">
+		select tr_date,nvl(sum(accept),0)as accept,nvl(sum(delivery),0)as delivery from 
+			(select c.tr_date,a.amount as accept ,b.amount as delivery  from 
+			(select distinct tr_date from ord_day_list where tr_date between #start_date# and #end_date#) c left join
+			(select a.tr_date,sum(a.amount) as amount from ord_day_list a 
+			where nature = '4' and state = '0'
+			<isNotEmpty prepend="AND" property="grp_name">
+				grp_id in (select grp_id from sys_grps_info where name in ($grp_name$))
+			</isNotEmpty>
+			and tr_date between #start_date# and #end_date#  
+			group by tr_date) a  on c.tr_date = a.tr_date
+			left join (select a.tr_date,sum(a.amount) as amount from ord_day_list a 
+			where nature='5' and state = '0'
+			<isNotEmpty prepend="AND" property="grp_name">
+				grp_id in (select grp_id from sys_grps_info where name in ($grp_name$))
+			</isNotEmpty>
+			and tr_date between #start_date# and #end_date#  
+			group by tr_date) b on c.tr_date= b.tr_date)
+		group by tr_date
+		order by tr_date
+	</select>
+	<!-- 订单信息 -->
+	<select id="queryOrdBasInfo4Excel" parameterClass="dto" resultClass="dto">
+		select a.seq_no,a.prod_ord_seq,a.cust_id,a.brand,a.style_no,a.contract_id,a.ord_seq_no,a.area_no,
+		a.article,a.classify,a.wash,a.material,a.order_num,a.percent_j,a.percent_w,a.less_clause,a.more_clause,
+		a.delivery_date,a.process_desc,a.prod_ord_file,a.orig_contract,a.box_ins,a.pack_ins,a.style_drawing,a.size_chart,
+		a.process_quota,a.notity_date,a.batch,a.add_proportion,a.pattern_code,a.opr_name,a.opr_date,
+		a.prod_plan_seq,a.status,a.state,a.remark,a.ribbon_color,a.wash_stream,a.production_certificate,
+		case when b.cust_name is null then a.cust_id else b.cust_name end as cust_name,
+		c.sew_fac,c.bach_fac,c.pack_fac,c.sew_fac_name,c.bach_fac_name,c.pack_fac_name,
+		c.sew_delivery_date,c.sew_start_date,c.bach_delivery_date,c.pack_delivery_date,c.plan_check,c.purchase_check,
+		c.tech_check,c.trade_check,c.plan_check_date, c.purchase_check_date,c.tech_check_date,c.trade_check_date,
+		c.seq_no as plan_seq_no,c.state as plan_state,
+		d.order_date as order_date,d.deli_date,f.value as column_value,e.ins_num,
+		case when d.order_id is null then a.ord_seq_no else d.order_id end as order_id,
+		case when e.cut_num =0 or e.cut_num is null then '0' else '1' end as is_used,
+		a.opr_merchandiser,a.transportation_way,a.check_prod_date,a.fob_deal_date
+		from prod_ord_info a
+		left join bas_cust_list b on a.cust_id =b.cust_id
+		left join
+		(select a.*,b.name as sew_fac_name,c.name as bach_fac_name,d.name as pack_fac_name
+			from prod_plan_info a
+			left join sys_grps_info b on a.sew_fac = b.grp_id
+			left join sys_grps_info c on a.bach_fac = c.grp_id
+			left join sys_grps_info d on a.pack_fac = d.grp_id
+		)c on a.prod_ord_seq =c.prod_ord_seq
+		left join ord_bas_info d on a.ord_seq_no =d.order_id
+		left join (select sum(ins_num) as ins_num,max(cut_num) as cut_num,prod_ord_seq from prod_bas_info
+		group by prod_ord_seq) e on a.prod_ord_seq = e.prod_ord_seq
+		left join prod_sub_info f on a.prod_ord_seq = f.id
+		where a.state !='1'
+		<isNotEmpty prepend="AND" property="prod_ord_seq_list">
+			a.prod_ord_seq in ($prod_ord_seq_list$)
+		</isNotEmpty>
+		order by a.seq_no
+	</select>
+	<select id="queryProdordScheList4Excel" parameterClass="dto" resultClass="dto">
+		select d.ord_seq_no as order_id,d.style_no,a.real_cut_num,a.draw_num,a.sew_num,a.sew_delivery_num,a.bach_accept_num,a.bach_delivery_num,a.pack_accept_num,a.f_product_num, 
+			a.b_product_num,a.receive_f_product,a.receive_b_product,a.middle_take,b.cust_name,b.opr_merchandiser,b.fob_deal_date,b.check_prod_date, 	
+			c.ord_num as order_num,c.ins_num,a.sendout_f_product,
+            case when a.real_cut_num != 0 and a.real_cut_num is not null and sendout_f_product is not null 
+            then trunc((a.real_cut_num-a.sendout_f_product)/(a.real_cut_num),4)*100 
+            else 0 end as consume
+		from prod_ord_info d 
+		left join prodord_sche_list a on a.order_id = d.ord_seq_no
+		left join (select a.cust_name,b.ord_seq_no as order_id,b.style_no,b.opr_merchandiser,b.fob_deal_date,b.check_prod_date  	
+					from bas_cust_list a 				
+					left join prod_ord_info b on a.cust_id = b.cust_id)b  		
+		on d.ord_seq_no = b.order_id and d.style_no = b.style_no 		
+		left join (select sum(b.ord_num)as ord_num,sum(b.ins_num)as ins_num,a.ord_seq_no as order_id,a.style_no 		
+					from prod_ord_info a  	
+					left join prod_bas_info b on a.prod_ord_seq = b.prod_ord_seq 		
+					group by a.ord_seq_no,a.style_no)c 
+		on d.ord_seq_no =c.order_id and d.style_no = b.style_no 
+		<dynamic prepend="where">
+			<isNotEmpty property="order_id" prepend="and">
+				d.ord_seq_no in ($order_id$)
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	<select id="queryWashExcel" parameterClass="dto" resultClass="dto">
+		select  b.cust_name,a.style_no,a.article,a.classify,a.wash,a.wash_stream,a.ribbon_color,a.ord_seq_no as order_id,a.check_prod_date,a.fob_deal_date,a.remark,
+			c.ord_num,c.ins_num,d.real_cut_num,d.bach_accept_num,d.bach_delivery_num,(d.bach_accept_num-d.bach_delivery_num)as residue,
+			(d.real_cut_num-d.bach_accept_num)as sew_short,g.tr_date as accept_start_date,
+				e.sew_name,e.bach_name,e.pack_name
+		from prod_ord_info a 
+		left join bas_cust_list b on a.cust_id = b.cust_id
+		left join (select sum(ord_num)as ord_num,sum(ins_num)as ins_num,prod_ord_seq from prod_bas_info group by prod_ord_seq) c on c.prod_ord_seq = a.prod_ord_seq
+		left join (select real_cut_num,draw_num,sew_num,bach_accept_num,bach_delivery_num,pack_accept_num,f_product_num,b_product_num,
+		receive_f_product,receive_b_product,middle_take,sew_delivery_num,order_id,style_no from prodord_sche_list) d 
+		on a.ord_seq_no = d.order_id 
+			left join (select e.*, 			(select name from sys_grps_info f where f.grp_id = e.sew_fac)as sew_name,
+			(select name from sys_grps_info f where f.grp_id = e.bach_fac)as bach_name,
+			(select name from sys_grps_info f where f.grp_id = e.pack_fac)as pack_name from prod_plan_info e ) e on e.prod_ord_seq = a.prod_ord_seq
+			left join (select min(tr_date)as tr_date,prod_ord_seq from epc_day_list where nature = '4' group by prod_ord_seq
+				union 
+			select min(a.tr_date)as tr_date,b.prod_ord_seq from ord_day_list a 
+				left join prod_ord_info b on a.order_id=b.ord_seq_no and a.style_no=b.style_no
+				where nature = '4'
+			group by b.prod_ord_seq )g on g.prod_ord_seq = a.prod_ord_seq
+			where check_prod_date between #start_date# and #end_date#
+			<isNotEmpty property="factoryName" prepend="and">
+				e.bach_name in ($factoryName$)
+			</isNotEmpty>
+			<isNotEmpty property="classify" prepend="and">
+				a.classify in ($classify$)
+			</isNotEmpty>
+	</select>
+	<select id="queryOrdDayList4OrdDayListExcel" parameterClass="dto" resultClass="dto">
+		select a.sequence_number,a.tr_date,a.tr_time,
+			(select dept_name from sys_dept_info f where a.dept_id=f.dept_id)as dept_name,
+			(select name from sys_team_info f where a.dept_id = f.dept_id and a.team_no = f.team_no)as team_name,
+			(select name from sys_grps_info f where a.grp_id = f.grp_id)as fac_name,
+			a.cust_name,a.order_id,a.style_no,a.article,a.mark,a.nature,a.amount,a.billno,a.submit_name,a.sure_name,
+			a.driver,a.remark
+		from ord_day_list a
+		<dynamic prepend="where">
+			<isNotEmpty prepend="and" property="ord_seq_no">
+				a.order_id like '%$ord_seq_no$%'
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="natures">
+				a.nature in ($natures$)
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="tr_date">
+				a.tr_date like '$tr_date$%'
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	<select id="queryData4ShipmentExcel" parameterClass="dto" resultClass="dto">
+		select a.opr_merchandiser,a.contract_id,a.style_no,a.ord_seq_no,a.article,b.cust_name,c.ins_num,c.ord_num,
+			(select name from sys_grps_info e where e.grp_id = d.sew_fac)as sew_name,
+			(select name from sys_grps_info e where e.grp_id = d.bach_fac)as bach_name,
+			(select name from sys_grps_info e where e.grp_id = d.pack_fac)as pack_name,
+			substr(f.tr_date,0,10) as sew_startdate,
+			g.real_cut_num,g.sew_num,sew_delivery_num,(g.sew_delivery_num-c.ins_num)as bachshort,
+			g.bach_accept_num,(g.bach_accept_num-g.sew_delivery_num)as bach_acceptshort,
+			a.wash_stream,a.check_prod_date,a.fob_deal_date,a.transportation_way,k.sew_delivery_date as sew_deliverydate
+		from prod_ord_info a 
+			left join bas_cust_list b on a.cust_id = b.cust_id
+			left join (
+				select sum(ord_num)as ord_num,sum(ins_num)as ins_num,a.prod_ord_seq 
+	                from prod_ord_info a 
+	                left join prod_bas_info b on a.prod_ord_seq = b.prod_ord_seq 
+	                group by a.prod_ord_seq)c on a.prod_ord_seq = c.prod_ord_seq
+				left join prod_plan_info d on d.prod_ord_seq = a.prod_ord_seq
+				left join (select min(tr_date)as tr_date,prod_ord_seq from epc_day_list where nature = '4' group by prod_ord_seq
+						union 
+						select min(a.tr_date)as tr_date,b.prod_ord_seq from ord_day_list a 
+							left join prod_ord_info b on a.order_id=b.ord_seq_no and a.style_no=b.style_no
+							where nature = '4'
+						group by b.prod_ord_seq 
+			)f on f.prod_ord_seq = a.prod_ord_seq
+			left join prod_plan_info k on k.prod_ord_seq = a.prod_ord_seq
+			left join prodord_sche_list g on g.order_id = a.ord_seq_no
+		where a.fob_deal_date <![CDATA[>=]]> #startdate# and a.fob_deal_date <![CDATA[<=]]>#enddate#
+		order by a.fob_deal_date
+	</select>
+</sqlMap>

@@ -1,0 +1,1 @@
+<OBJECT	id="Test"   ALIGN="CENTER" WIDTH=1   HEIGHT=1  CODEBASE="${pageContext.request.contextPath}/ocx/IccRfid.CAB#version=1,0,0,1" classid="clsid:5213D6E5-7044-480E-8778-319D825A6205" ></OBJECT>

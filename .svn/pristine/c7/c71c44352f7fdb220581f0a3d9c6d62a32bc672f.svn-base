@@ -1,0 +1,319 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<!--考勤群组表 -->
+<sqlMap>
+    <typeAlias alias="dto"
+               type="org.eredlab.g4.ccl.datastructure.impl.BaseDto"/>
+
+    <!-- 获取父部门id -->
+    <select id="getParentDeptInfo" parameterClass="map" resultClass="dto">
+        select a.parent_id as dept_id ,a.dept_name,a.leaf,b.num from sys_dept_info a
+        left join (select count(*) as num ,a.dept_id from sys_dept_info a
+            left join sys_user_info b on instr(b.dept_id,a.dept_id)=1
+            where state !='1' and user_type ='2' group by a.dept_id) b
+        on a.dept_id =b.dept_id
+        <dynamic prepend="WHERE">
+            <isNotEmpty prepend="AND" property="deptid">
+                a.dept_id = '$deptid$'
+            </isNotEmpty>
+        </dynamic>
+    </select>
+
+
+    <select id="getDeptInfo4TeamGrp" parameterClass="map" resultClass="dto">
+        select a.dept_id as id ,dept_name||'('|| case when b.num is null then 0 else b.num end ||')' as text,
+        c.num,a.leaf
+        from sys_dept_info a
+        left join (select count(*) as num ,a.dept_id from sys_dept_info a left join
+        sys_user_info b on
+        instr(b.dept_id,a.dept_id)=1
+        where state !='1' and user_type ='0' group by a.dept_id) b
+        on a.dept_id =b.dept_id
+        left join
+        (select dept_id,count(team_no) as num from sys_team_info where state ='0' group by dept_id) c
+        on a.dept_id = c.dept_id
+        <dynamic prepend="WHERE">
+            <isNotEmpty prepend="AND" property="deptid">
+                a.parent_id = '$deptid$'
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="cur_deptid">
+                a.dept_id like '$cur_deptid$%'
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="deptstate">
+                a.dept_state = #deptstate#
+            </isNotEmpty>
+        </dynamic>
+
+        and custom_id is null
+        order by a.dept_id
+    </select>
+
+    <select id="getGrpInfo4TeamGrp" parameterClass="map" resultClass="dto">
+        select 'grps'||a.team_no as id ,a.name||'('||case when b.num is null then 0 else b.num end ||')' as text,
+        a.name,b.num,a.dept_id from sys_team_info a left join
+        (select count(*) as num,team_no,a.grp_id
+        from sys_team_list a left join sys_user_info b on a.grp_id = b.grp_id and a.per_id = b.account
+        where a.state ='0'and b.user_type ='0' and b.state!='1' group by team_no,a.grp_id) b
+        on a.grp_id = b.grp_id and
+        a.team_no = b.team_no
+        <dynamic prepend="where">
+            <isNotEmpty prepend="AND" property="grp_id">
+                a.grp_id = '$grp_id$'
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="deptid">
+                a.dept_id = '$deptid$'
+            </isNotEmpty>
+        </dynamic>
+        and a.state ='0'
+        order by a.team_no
+    </select>
+
+
+    <!-- 查询群组最大编号 -->
+    <select id="queryTeamGrpNo" parameterClass="map" resultClass="Integer">
+        select nvl(max(team_no),0) from sys_team_info
+        <dynamic prepend="where">
+            <isNotEmpty prepend="AND" property="grp_id">
+                grp_id = '$grp_id$'
+            </isNotEmpty>
+        </dynamic>
+    </select>
+
+    <!-- 查询班组中是否有同名 -->
+    <select id="queryCountTeamGrpName" parameterClass="map"
+            resultClass="Integer">
+        select count(*) from sys_team_info
+        <dynamic prepend="where">
+            <isNotEmpty prepend="AND" property="grp_id">
+                grp_id = '$grp_id$'
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="name">
+                name = #name#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="deptid">
+                dept_id = #deptid#
+            </isNotEmpty>
+        </dynamic>
+        and state = '0'
+    </select>
+
+    <!-- 查询未分配群组人员数量 -->
+    <select id="queryRemainUserCount4TeamGrp" parameterClass="map"
+            resultClass="Integer">
+        select count(*) as num from sys_user_info a left join
+        (select
+        a.grp_id,a.dept_id,b.per_id from sys_team_info a
+        left join sys_team_list b
+        on a.team_no = b.team_no and a.grp_id =
+        b.grp_id where
+        b.state='0' )
+        b on a.dept_id =b.dept_id and a.account = b.per_id where
+        b.grp_id is null
+        and a.state!='1' and user_type='0'
+        <dynamic>
+            <isNotEmpty prepend="AND" property="grp_id">
+                a.grp_id = '$grp_id$'
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="deptid">
+                a.dept_id = #deptid#
+            </isNotEmpty>
+        </dynamic>
+        group by a.dept_id
+    </select>
+
+    <!-- 查询未分配群组人员信息(也可用于查找部门人员信息) -->
+    <select id="queryRemainUserInfo4TeamGrp" parameterClass="map"
+            resultClass="dto">
+        select 'user'||a.account as id,a.per_no||' '||a.user_name as
+        text,a.dept_id
+        from sys_user_info a left join (select
+        a.grp_id,a.dept_id,b.per_id from
+        sys_team_info a
+        left join sys_team_list
+        b
+        on a.team_no = b.team_no and a.grp_id =
+        b.grp_id where
+        b.state='0' )
+        b
+        on a.dept_id =b.dept_id and a.account = b.per_id where
+        a.state!='1'  
+        <isNotEmpty prepend="AND" property="user_type">
+        	user_type=#user_type#
+        </isNotEmpty>
+        <isEmpty prepend="AND" property="user_type">
+ 			user_type='0'       
+        </isEmpty>
+        <dynamic>
+            <isNotEmpty prepend="AND" property="grp_id">
+                a.grp_id = '$grp_id$'
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="deptid">
+                a.dept_id = #deptid#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="flag">
+                b.grp_id is null
+            </isNotEmpty>
+        </dynamic>
+        order by a.per_no
+    </select>
+
+    <insert id="saveTeamGrpInfo" parameterClass="dto">
+        insert into
+        sys_team_info
+        (grp_id,type,team_no,dept_id,name,remark,opr_id,state)values
+        (#grp_id#,#type#,#team_grp_no#,#deptid#,#name#,#remark#,#opr_id#,#state#)
+    </insert>
+
+    <!-- 删除班组信息 -->
+    <update id="delTeamGrpDef" parameterClass="dto">
+        UPDATE sys_team_info set
+        state = '1'
+        WHERE grp_id=#grp_id# and (team_no = #team_grp_no# or
+        dept_id =
+        #team_grp_no#)
+    </update>
+
+    <!-- 查询群组中部门或人员数量 -->
+    <select id="queryTeamGrpListNum" parameterClass="map"
+            resultClass="Integer">
+        select count(*) from sys_team_list a left join sys_user_info b
+        on a.per_id =
+        b.account and a.grp_id=b.grp_id where a.state ='0'
+        and b.state!='1' and
+        user_type ='2'
+        <dynamic>
+            <isNotEmpty prepend="AND" property="grp_id">
+                a.grp_id = #grp_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="team_grp_no">
+                (a.team_no =
+                #team_grp_no# or b.dept_id = #team_grp_no#)
+            </isNotEmpty>
+        </dynamic>
+    </select>
+
+    <!-- 查询群组详细信息 -->
+    <select id="queryTeamGrpInfo" parameterClass="map" resultClass="dto"
+            remapResults="true">
+        select a.name,a.remark,b.user_name as opr_name,'正常' as
+        state,a.dept_id,c.dept_name
+        from sys_team_info a left join sys_user_info b on
+        a.grp_id = b.grp_id and a.opr_id
+        = b.account
+        left join sys_dept_info c on
+        a.dept_id = c.dept_id
+        where a.state ='0'
+        <dynamic>
+            <isNotEmpty prepend="AND" property="grp_id">
+                a.grp_id = '$grp_id$'
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="team_grp_no">
+                a.team_no =
+                '$team_grp_no$'
+            </isNotEmpty>
+        </dynamic>
+        order by a.team_no
+    </select>
+
+    <!-- 查询班组所属人员信息 -->
+    <select id="queryTeamGrpUserInfo" parameterClass="map"
+            resultClass="dto">
+        select 'user'||a.per_id as id ,b.per_no||' '||b.user_name as
+        text,b.per_no||'' as per_no from sys_team_list a
+        left join sys_user_info b on
+        a.grp_id = b.grp_id and a.per_id = b.account
+        <dynamic prepend="where">
+            <isNotEmpty prepend="AND" property="grp_id">
+                a.grp_id = #grp_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="team_grp_no">
+                a.team_no = #team_grp_no#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="parentid">
+                b.dept_id = #parentid#
+            </isNotEmpty>
+        </dynamic>
+        and a.state ='0' and b.state!='1'
+    </select>
+<!-- 添加班组 -->
+	<insert id="batchTeamInfoImport" parameterClass="dto">
+		insert into sys_team_info(grp_id,dept_id,name,opr_id,opr_date,remark,state,team_no,type)
+		values(#grp_id#,#dept_id#,#team_name#,#opr_id#,#opr_date#,#remark#,#state#,#team_no#,#type#)
+	</insert>
+	<select id="queryTeams4Import" parameterClass="map" resultClass="dto">
+		select a.name as grp_name,a.grp_id,d.dept_id,d.dept_name,c.team_no,c.name as team_name
+		from sys_grps_info a 
+		left join sys_dept_info  b on b.dept_id = a.match_dept_id 
+		left join sys_dept_info  d on d.parent_id = b.dept_id
+		left join sys_team_info c on c.dept_id= d.dept_id
+		where a.state ='0' and d.dept_state= '0' and (c.state='0' or c.state is null)
+		and a.name=#grp_name#
+
+	</select>
+    <!-- 查询可添加的人员信息 -->
+    <select id="queryTeamGrpUserList4Add" parameterClass="map"
+            resultClass="dto">
+       SELECT a.per_no||' '||a.user_name as text,'user'||a.account as
+        id,a.per_no,a.dept_id
+        from sys_user_info a
+        where a.state!='1' and a.user_type='0'
+        and a.account not in( select per_id from sys_team_list where state!='1')
+        <dynamic>
+            <isNotEmpty prepend="AND" property="grp_id">
+                a.grp_id = #grp_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="parentid">
+                a.dept_id = #parentid#
+            </isNotEmpty>
+        </dynamic>
+        order by a.per_no
+    </select>
+
+    <!-- 保存班组详细信息-->
+    <insert id="saveTeamGrpList" parameterClass="dto">
+        merge into
+        sys_team_list a using (select '1' from dual) t on
+        (grp_id=#grp_id# and team_no = #team_grp_no# and
+        per_id = #per_id#)
+        when
+        matched then
+        update set state ='0',opr_id =#opr_id#,remark = #remark#
+        when not matched
+        then
+        insert
+        (grp_id,team_no,per_id,opr_id,state,remark)values
+        (#grp_id#,#team_grp_no#,#per_id#,#opr_id#,#state#,#remark#)
+    </insert>
+
+    <!-- 删除班组信息 -->
+    <update id="delTeamGrpList" parameterClass="dto">
+        UPDATE sys_team_list
+        set state = '1'
+        WHERE grp_id=#grp_id# and team_no = #team_grp_no#
+        and
+        per_id = #per_id#
+    </update>
+
+    <!-- 删除班组信息 -->
+    <update id="delTeamGrpList4UserEmp" parameterClass="dto">
+        UPDATE
+        team_grp_list set state = #state#
+        WHERE grp_id=#grp_id# and per_id =
+        #per_id#
+    </update>
+
+    <!-- 更改排班状态 -->
+    <update id="updateTeamScheBookStatus" parameterClass="dto">
+        UPDATE
+        team_sche_book set status = #status#
+        WHERE team_grp_no = #team_grp_no# and
+        type = #type# and grp_id = #grp_id#
+    </update>
+    <!--  部门查询班组  -->
+    <select id="queryTeamsInfo4DeptId" parameterClass="dto" resultClass="dto">
+        select type,team_no as id,dept_id,name as text,state
+        from sys_team_info
+        where dept_id = #dept_id#
+        and state = '0'
+    </select>
+</sqlMap>

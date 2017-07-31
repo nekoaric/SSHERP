@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<!-- 用户管理与授权手工映射SQL语句 -->
+<sqlMap>
+	<typeAlias alias="dto" type="org.eredlab.g4.ccl.datastructure.impl.BaseDto"/>
+	
+	<!-- 用户管理与授权-用户列表   试用的-->
+    <select id="queryManageUsersForManage" parameterClass="map" resultClass="dto" remapResults="true">
+        select a.user_id, a.user_name, a.dept_id, a.account,a.user_type,a.per_no,a.grp_id,a.id_crd,a.birthday,
+        a.duty,a.address,a.tel_no,a.mbl_no,a.err_num,a.opn_opr_id,a.opn_date,a.cls_opr_id,a.cls_date,a.state,
+        a.photo,a.password,case  a.sex when '1' then '男' when '2' then '女' end as sex,a.remark,
+        b.name as grp_name,b.apps,c.dept_name,d.role_id,d.role_name
+        from sys_user_info a
+        left join sys_grps_info b on a.dept_id = b.match_dept_id
+        left join sys_dept_info c on a.dept_id = c.dept_id
+        left join ( SELECT a.role_id,a.role_name,b.user_id FROM sys_role_info a
+            left join sys_user_rolemap b on a.role_id = b.role_id )d
+        on a.user_id = d.user_id
+        <dynamic prepend="where">
+            <isNotEmpty prepend="AND" property="user_id">
+                a.user_id like '$user_id$%'
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="dept_id">
+                a.dept_id like '$dept_id$%'
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="rolename">
+                a.user_name like '%$user_name$%'
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="queryParam">
+                a.user_name like '%$queryParam$%'
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="grp_id_pattern">
+                a.grp_id like '$grp_id_pattern$%'
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="per_no">
+                a.per_no = #per_no#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="user_type">
+                a.user_type=#user_type#
+            </isNotEmpty>
+        </dynamic>
+        order by a.user_id
+    </select>
+
+	<!-- 根据主键查询个人信息  -->
+    <select id="getUserInfoByKey" parameterClass="map" resultClass="dto">
+        SELECT user_id, user_name, account, 
+           password, sex, dept_id, user_type,grp_id,mbl_no
+         FROM SYS_USER_INFO  WHERE user_id = #user_id#
+    </select>
+    
+    <!-- 查询员工工号是否可用  -->
+	<select id="checkPerNo" parameterClass="map" resultClass="java.lang.Integer">
+		SELECT count(*) FROM sys_user_info where grp_id = #grp_id# and per_no = #per_no# and state !='1'
+	</select>
+    
+	<!-- 根据登录账户查询人员信息  -->
+	<select id="checkManageAccount" parameterClass="map" resultClass="java.lang.Integer">
+		SELECT count(*) FROM sys_user_info where grp_id = #grp_id# and account = #account#
+	</select>
+	
+		<!-- 根据查询角色权限信息  -->
+	<select id="getManageAccountByUserid" parameterClass="map" resultClass="java.lang.Integer">
+		SELECT count(*) FROM SYS_USER_ROLEMAP where  user_id = #userid#
+	</select>
+
+</sqlMap>

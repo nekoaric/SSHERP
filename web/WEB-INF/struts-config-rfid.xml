@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts-config PUBLIC "-//Apache Software Foundation//DTD Struts Configuration 1.2//EN"
+        "http://struts.apache.org/dtds/struts-config_1_3.dtd">
+<struts-config>
+    <!-- 配置ActionFormBean -->
+    <!-- Action映射 -->
+    <action-mappings type="org.apache.struts.action.ActionMapping">
+    <!-- 测试页面使用的Action -->
+        <action name="commonActionForm" path="/test" scope="request"
+            validate="false" parameter="reqCode" type="com.cnnct.rfid.web.JspTestAction">
+            <forward name="success" path="/baseComponent/test.jsp"></forward>
+        </action>
+        <!-- 请求管理映射 -->
+        <action name="commonActionForm" path="/requestManage" scope="request"
+            validate="false" parameter="reqCode" type="com.cnnct.sys.web.SysRequestManageAction">
+            <forward name="requestManageView" path="/cnnct/sys/manageRequestInfo.jsp"></forward>
+        </action>
+        <!-- 用户回话管理映射 -->
+        <action name="commonActionForm" path="/sessionManage" scope="request"
+            validate="false" parameter="reqCode" type="com.cnnct.sys.web.SysSessionManageAction">
+            <forward name="sessionManageView" path="/cnnct/sys/manageUserSession.jsp"></forward>
+        </action>
+        <!--  完单报告  -->
+        <action name="commonActionForm" path="/orderReport" scope="request"
+            validate="false" parameter="reqCode" type="com.cnnct.rfid.web.OrderReportInfoAction">
+            <forward name="orderReport" path="/cnnct/rfid/orderReportInfo.jsp" />
+            <forward name="orderReportQuery" path="/cnnct/rfid/orderReportQuery.jsp"></forward>
+        </action>
+        <!-- 订单管理-->
+        <action name="commonActionForm" path="/ordBas" scope="request"
+                validate="false" parameter="reqCode" type="com.cnnct.rfid.web.OrdBasInfoAction">
+            <forward name="ordBasInfoView" path="/cnnct/rfid/getOrdBasInfo.jsp"/>
+        </action>
+
+        <!-- 生产通知单管理 -->
+		<action name="commonActionForm" path="/prodOrd" scope="request"
+			validate="false" parameter="reqCode" type="com.cnnct.rfid.web.ProdOrdInfoAction">
+			<forward name="prodOrdInfoView" path="/cnnct/rfid/getProdOrdInfo.jsp" />
+		</action> 
+		
+        <!-- 设备管理-->
+        <action name="commonActionForm" path="/devTrm" scope="request" validate="false" parameter="reqCode"
+                type="com.cnnct.rfid.web.DevTrmInfoAction">
+            <forward name="devTrmInfoView" path="/cnnct/rfid/getDevTrmInfo.jsp"/>
+        </action>
+
+        <!-- 客户信息管理-->
+        <action name="commonActionForm" path="/custBas" scope="request" validate="false" parameter="reqCode"
+                type="com.cnnct.rfid.web.CustBasInfoAction">
+            <forward name="CustBasView" path="/cnnct/rfid/getCustBasList.jsp"/>
+        </action>
+
+        <!-- 服装信息管理-->
+        <action name="commonActionForm" path="/clothBas" scope="request" validate="false" parameter="reqCode"
+                type="com.cnnct.rfid.web.ClothBasInfoAction">
+            <forward name="ClothBasInfoView" path="/cnnct/rfid/getClothBasInfo.jsp"/>
+        </action>
+
+        <!-- RFID标签登记维护-->
+        <action name="commonActionForm" path="/manageEpcBook" scope="request" validate="false" parameter="reqCode"
+                type="com.cnnct.rfid.web.EpcBookListAction">
+            <forward name="manageEpcBookListView" path="/cnnct/rfid/manageEpcBookList.jsp"/>
+        </action>
+        <!-- RFID绑定以及解绑管理-->
+        <action name="commonActionForm" path="/manageEpc" scope="request" validate="false" parameter="reqCode"
+                type="com.cnnct.rfid.web.EpcProdInfoAction">
+            <forward name="manageEpcProdView" path="/cnnct/rfid/manageEpcProdInfo.jsp"/>
+            <forward name="removeEpcProdView" path="/cnnct/rfid/removeEpcProdInfo.jsp"/>
+            <forward name="queryProdDetailView" path="/cnnct/rfid/queryProdDetailInfo.jsp"/>
+        </action>
+        <!-- RFID领片记录确认-->
+        <action name="commonActionForm" path="/prodSure" scope="request" validate="false" parameter="reqCode"
+                type="com.cnnct.rfid.web.ProdSureListAction">
+            <forward name="manageProdSureListView" path="/cnnct/rfid/manageProdSureList.jsp"/>
+        </action>
+		<!-- RFID成品确认-->
+        <action name="commonActionForm" path="/manageProdBox" scope="request" validate="false" parameter="reqCode"
+                type="com.cnnct.rfid.web.ProdBoxListAction">
+            <forward name="manageProdBoxListView" path="/cnnct/rfid/manageProdBoxList.jsp"/>
+        </action>
+        <!-- 统计查询-->
+        <!-- RFID标签流水表-->
+        <action name="commonActionForm" path="/manageEpcDay" scope="request" validate="false" parameter="reqCode"
+                type="com.cnnct.rfid.web.EpcDayListAction">
+            <forward name="manageEpcDayListView" path="/cnnct/rfid/manageEpcDayList.jsp"/>
+        </action>
+
+        <!-- 订单记录流水表-->
+        <action name="commonActionForm" path="/ordDayList" scope="request" validate="false" parameter="reqCode"
+                type="com.cnnct.rfid.web.OrdDayListAction">
+            <forward name="ordDayListView" path="/cnnct/rfid/manageOrdDayList.jsp"/>
+            <forward name="sureOrdDayList" path="/cnnct/rfid/sureOrdDayList.jsp"/>
+        </action>
+
+        <!-- 订单进度查询-->
+        <action name="commonActionForm" path="/ordSche" scope="request" validate="false" parameter="reqCode"
+                type="com.cnnct.rfid.web.OrdScheInfoAction">
+            <forward name="ordScheListView" path="/cnnct/rfid/getOrdScheList.jsp"/>
+            <forward name="ordDayScheView" path="/cnnct/rfid/getOrdDaySche.jsp"/>
+            <forward name="ordShortInfoView" path="/cnnct/rfid/getOrdShortInfo.jsp"/>
+            <forward name="prodOrdShortInfoView" path="/cnnct/rfid/getProdOrdShortInfo.jsp"/>
+        </action>
+
+        <!-- 部门进度查询-->
+        <action name="commonActionForm" path="/deptSche" scope="request" validate="false" parameter="reqCode"
+                type="com.cnnct.rfid.web.DeptScheInfoAction">
+            <forward name="deptScheInfoView" path="/cnnct/rfid/getDeptScheInfo.jsp"/>
+            <forward name="deptDayScheView" path="/cnnct/rfid/getDeptDaySche.jsp"/>
+        </action>    
+        <!-- 班次定义-->
+        <action name="commonActionForm" path="/manageTeam" scope="request"
+            validate="false" parameter="reqCode" type="com.cnnct.sys.web.ManageTeamAction">
+            <forward name="mangeTeamView" path="/cnnct/sys/manageTeam.jsp" />
+        </action>
+		<!-- 报表导出 -->
+		 <action type="com.cnnct.rfid.web.ExcelExportAction" parameter="reqCode" validate="false" scope="request" path="/excelExport" name="commonActionForm">
+		    <forward name="exportView" path="/cnnct/rfid/excelExportView.jsp"></forward> 
+		 </action> 
+		<!-- 问题解决收集界面 -->
+		 <action type="com.cnnct.rfid.web.QAInfoAction" parameter="reqCode" validate="false" scope="request" path="/qaInfo" name="commonActionForm"> 
+		 	<forward path="/cnnct/rfid/qaInfo.jsp" name="QAInfoView"/> 
+		 </action>
+		 <!-- qc工序界面 -->
+		  <action type="com.cnnct.rfid.web.ManageQCAction" parameter="reqCode" validate="false" scope="request" path="/manageQC" name="commonActionForm"> 
+		 	<forward path="/cnnct/rfid/manageQCProcess.jsp" name="ManageQCView"/> 
+		 	<forward name="queryView" path="/loginMode2/QC/qcQueryInfo.jsp"></forward>
+		 	<forward name="qcNumView" path="/loginMode2/QC/qcItems.jsp"></forward>
+		 	<forward name="ManageQCScheView" path="/cnnct/rfid/manageQCSche.jsp"></forward>
+		 	<forward name="qcPieView" path="/cnnct/rfid/manageQCReport.jsp"></forward>
+		 </action>
+		 <!-- salesFocus -->
+		  <action type="com.cnnct.rfid.web.SalesFocusReportAction" parameter="reqCode" validate="false" scope="request" path="/salesFocus" name="commonActionForm">
+		  	<forward name="salesFocusView" path="/cnnct/rfid/salesFocusReport.jsp"></forward>
+		  	<forward name="salesFocusBrandInfoView" path="/cnnct/rfid/salesFocusBrandInfo.jsp"></forward>
+		  	<forward name="salesFocus4View" path="/cnnct/rfid/salesFocusReport4View.jsp"></forward>
+		  </action>
+		 <!-- 排数 -->
+         <action type="com.cnnct.rfid.web.ArrangeAction" parameter="reqCode" validate="false" 
+            scope="request" path="/arrange" name="commonActionForm"> 
+            <forward path="/arrange/index.jsp" name="arrangeInit" /> 
+         </action>
+         <!-- 吊挂信息 -->
+         <action type="com.cnnct.rfid.web.HungProgressAction" parameter="reqCode" validate="false" scope="request" path="/hungProgress" name="commonActionForm">
+		  	<forward name="hungProgressView" path="/cnnct/rfid/hungProgressReport.jsp"></forward>
+		  </action>
+		  <!-- 财务出运报表 -->
+		  <action type="com.cnnct.rfid.web.FinanceSendOutAction" parameter="reqCode" validate="false" scope="request" path="/hungProgress" name="commonActionForm">
+		  	<forward name="financeSendOutView" path="/cnnct/rfid/financeSendOutReport.jsp"></forward>
+		  </action>
+    </action-mappings>
+
+</struts-config>

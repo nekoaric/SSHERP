@@ -1,0 +1,19 @@
+import java.lang.reflect.Field;
+
+
+
+public class TestField extends TestSplit{
+    private int intName;
+    public Integer integerName = 3;
+    public static void main(String[] args) {
+        TestField tf = new TestField();
+        Class tfClass = tf.getClass();
+        Field[] fs = tfClass.getDeclaredFields();
+        Field[] fss = tfClass.getFields();
+        System.out.println(fss.length);
+        System.out.println(fs.length);
+        for(Field f : fs){
+            System.out.println(f.getName());
+        }
+    }
+}

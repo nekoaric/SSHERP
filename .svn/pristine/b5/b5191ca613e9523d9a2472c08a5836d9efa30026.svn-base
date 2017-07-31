@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 权限参考模型 -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="
+	http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+	http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-2.5.xsd
+	http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-2.5.xsd">
+	
+	<!-- 事务管理器配置 -->
+	<bean id="transactionManagerG4" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource">
+			<ref bean="dataSourceG4" />
+		</property>
+	</bean>	
+	
+	<!-- sqlserver事务管理器配置 -->
+	<bean id="transactionManagerSqlServer" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource">
+			<ref bean="dataSourceMSSQL" />
+		</property>
+	</bean>	
+	
+	<!-- 配置事务代理的基类 -->
+	<bean id="baseTransactionProxyG4" class="org.springframework.transaction.interceptor.TransactionProxyFactoryBean" abstract="true">
+		<property name="transactionManager">
+			<ref bean="transactionManagerG4" />
+		</property>
+		<property name="transactionAttributes">
+			<props>
+				<prop key="save*">PROPAGATION_REQUIRED</prop>
+				<prop key="update*">PROPAGATION_REQUIRED</prop>
+				<prop key="delete*">PROPAGATION_REQUIRED</prop>
+				<prop key="*">PROPAGATION_REQUIRED,-ApplicationException</prop>
+				<prop key="*Transaction">PROPAGATION_REQUIRED,-Exception</prop>
+				<prop key="*Tra">PROPAGATION_REQUIRED,-Exception</prop>
+			</props>
+		</property>
+	</bean> 
+	
+	<!-- Service基类 -->
+	<bean id="baseService" parent="baseTransactionProxyG4">
+		<property name="target">
+			<bean class="org.eredlab.g4.bmf.base.BaseServiceImpl">
+				<property name="g4Dao" ref="g4Dao" />
+			</bean>
+		</property>
+	</bean>
+	
+	<!-- 多数据源Service基类 -->
+	<bean id="multiDSService" parent="baseTransactionProxyG4">
+		<property name="target">
+			<bean class="org.eredlab.g4.bmf.base.MultiDSServiceImpl">
+				<property name="g4Dao" ref="g4Dao" />
+				<property name="sDao" ref="sDao" />
+			</bean>
+		</property>
+	</bean>
+	
+	<!-- 组织机构模型 -->
+	<bean id="organizationService" parent="baseTransactionProxyG4">
+		<property name="target">
+			<bean class="org.eredlab.g4.arm.service.impl.OrganizationServiceImpl">
+				<property name="g4Dao" ref="g4Dao" />
+			</bean>
+		</property>
+	</bean>
+	
+	<!-- 资源模型 -->
+	<bean id="resourceService" parent="baseTransactionProxyG4">
+		<property name="target">
+			<bean class="org.eredlab.g4.arm.service.impl.ResourceServiceImpl">
+				<property name="g4Dao" ref="g4Dao" />
+			</bean>
+		</property>
+	</bean>
+	
+
+	<!-- 数据角色管理与授权  -->
+	<bean id="dataPermService" parent="baseTransactionProxyG4">
+		<property name="target">
+			<bean class="com.cnnct.sys.service.impl.DataPermServiceImpl">
+				<property name="g4Dao" ref="g4Dao" />
+			</bean>
+		</property>
+	</bean>
+	
+	<!-- 全局参数表管理 -->
+	<bean id="paramService" parent="baseTransactionProxyG4">
+		<property name="target">
+			<bean class="org.eredlab.g4.arm.service.impl.ParamServiceImpl">
+				<property name="g4Dao" ref="g4Dao" />
+			</bean>
+		</property>
+	</bean>
+	
+	<!-- 异常信息管理  -->
+	<bean id="exceptionService" parent="baseTransactionProxyG4">
+		<property name="target">
+			<bean class="org.eredlab.g4.arm.service.impl.ExceptionServiceImpl">
+				<property name="g4Dao" ref="g4Dao" />
+			</bean>
+		</property>
+	</bean>
+	
+	<!-- 系统监控  -->
+	<bean id="monitorService" parent="baseTransactionProxyG4">
+		<property name="target">
+			<bean class="org.eredlab.g4.arm.service.impl.MonitorServiceImpl">
+				<property name="g4Dao" ref="g4Dao" />
+			</bean>
+		</property>
+	</bean>
+	
+	<!-- 权限标签支持  -->
+	<bean id="armTagSupportService" parent="baseTransactionProxyG4">
+		<property name="target">
+			<bean class="com.cnnct.sys.service.impl.ArmTagSupportServiceImpl">
+				<property name="g4Dao" ref="g4Dao" />
+			</bean>
+		</property>
+	</bean>
+	
+	<bean id="areaService" parent="baseTransactionProxyG4">
+		<property name="target">
+			<bean class="org.eredlab.g4.arm.service.impl.AreaServiceImpl">
+				<property name="g4Dao" ref="g4Dao" />
+			</bean>
+		</property>
+	</bean>
+	
+	<!-- 职务 -->
+	<bean id="dutyService" parent="baseTransactionProxyG4">
+		<property name="target">
+			<bean class="org.eredlab.g4.arm.service.impl.DutyServiceImpl">
+				<property name="g4Dao" ref="g4Dao" />
+			</bean>
+		</property>
+	</bean>
+	
+    <!-- 短信 -->
+	<bean id="messageService" parent="baseTransactionProxyG4">
+		<property name="target">
+			<bean class="org.eredlab.g4.arm.service.impl.MessageServiceImpl">
+				<property name="g4Dao" ref="g4Dao" />
+			</bean>
+		</property>
+	</bean>
+
+    <!-- 部门管理 -->
+    <bean id="sysDeptInfoService" parent="baseTransactionProxyG4">
+        <property name="target">
+            <bean class="com.cnnct.sys.service.impl.SysDeptInfoServiceImpl">
+                <property name="g4Dao" ref="g4Dao" />
+            </bean>
+        </property>
+    </bean>
+
+    <bean id="roleService" parent="baseTransactionProxyG4">
+        <property name="target">
+            <bean class="com.cnnct.sys.service.impl.RoleServiceImpl">
+                <property name="g4Dao" ref="g4Dao" />
+            </bean>
+        </property>
+    </bean>
+
+    <!-- 用户管理与授权 -->
+    <bean id="sysUserInfoService" parent="baseTransactionProxyG4">
+        <property name="target">
+            <bean class="com.cnnct.sys.service.impl.SysUserInfoServiceImpl">
+                <property name="g4Dao" ref="g4Dao" />
+            </bean>
+        </property>
+    </bean>
+    
+    <!-- 用户管理与授权 -->
+    <bean id="manageUserService" parent="baseTransactionProxyG4">
+        <property name="target">
+            <bean class="com.cnnct.sys.service.impl.ManageUserInfoServiceImpl">
+                <property name="g4Dao" ref="g4Dao" />
+            </bean>
+        </property>
+    </bean>
+    
+     <!-- 用户管理与授权 -->
+    <bean id="sysGrpsService" parent="baseTransactionProxyG4">
+        <property name="target">
+            <bean class="com.cnnct.sys.service.impl.SysGrpsServiceImpl">
+                <property name="g4Dao" ref="g4Dao" />
+            </bean>
+        </property>
+    </bean>
+    <bean id="manageTeamService" parent="baseTransactionProxyG4">
+    	<property name="target">
+    		<bean  class="com.cnnct.sys.service.impl.ManageTeamServiceImpl">
+    			<property name="g4Dao" ref="g4Dao"></property>
+    		</bean>
+    	</property>
+    </bean> 
+</beans>

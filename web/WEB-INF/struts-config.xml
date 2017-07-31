@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts-config PUBLIC "-//Apache Software Foundation//DTD Struts Configuration 1.2//EN" "http://struts.apache.org/dtds/struts-config_1_3.dtd">
+<struts-config>
+	<!-- 配置ActionFormBean -->
+	<form-beans> 
+		<!-- 公共Form -->  
+		<form-bean name="commonActionForm" type="org.eredlab.g4.rif.web.CommonActionForm" />  
+	</form-beans>
+
+	<!-- Action映射 -->
+	<action-mappings type="org.apache.struts.action.ActionMapping"> 
+		<!-- 登录页面 -->
+		<action name="commonActionForm" path="/login" scope="request" validate="false" parameter="reqCode"
+			type="com.cnnct.sys.web.LoginAction">
+			<forward name="loginView" path="/login_old.jsp" />
+			<forward name="success" path="index.ered?reqCode=indexInit" redirect="true"/>
+			<forward name="error" path="/login_old.jsp"/>
+		</action>
+		 
+		<!-- 首页 -->
+		<action name="commonActionForm" path="/index" scope="request" validate="false" parameter="reqCode"
+			type="com.cnnct.sys.web.IndexAction">
+			<forward name="indexView" path="/index.jsp" />
+			<forward name="desktopView" path="/desktop.jsp" />
+			<forward name="welcomeView" path="/arm/welcome.jsp" />
+		</action>
+
+        <!--部门管理-->
+        <action name="commonActionForm" path="/sysDept" scope="request" validate="false" parameter="reqCode"
+                type="com.cnnct.sys.web.SysDeptInfoAction">
+            <forward name="sysDeptInfoView" path="/cnnct/sys/getSysDeptInfo.jsp"/>
+        </action>
+
+        <!-- 人员,用户管理与授权-->
+        <action name="commonActionForm" path="/sysUser" scope="request" validate="false" parameter="reqCode"
+                type="com.cnnct.sys.web.SysUserInfoAction">
+            <forward name="sysUserInfoView" path="/cnnct/sys/getSysUserInfo.jsp"/>
+            <forward name="manageUserView" path="/cnnct/sys/manageUser.jsp"/>
+            <forward name="manageGrpUserView" path="/cnnct/sys/manageGrpUser.jsp"/>
+            <forward name="manageUserOutView" path="/cnnct/sys/manageUserOut.jsp"/>
+        </action>
+        
+        <!-- 单位管理-->
+        <action name="commonActionForm" path="/sysGrps" scope="request"
+                validate="false" parameter="reqCode" type="com.cnnct.sys.web.SysGrpsAction">
+            <forward name="belongGrpsView" path="/cnnct/sys/belongGrps.jsp" /><!-- 所属企业管理 -->
+        </action>
+
+		<!-- 角色管理与授权-->
+		<action name="commonActionForm" path="/role" scope="request" validate="false" parameter="reqCode"
+			type="com.cnnct.sys.web.RoleAction">
+			<forward name="manageRoleView" path="/arm/manageRole.jsp" />
+			<forward name="manageRole4AdminView" path="/cnnct/sys/manageRole4Admin.jsp" />
+		</action>
+
+		<!-- 数据角色管理与授权-->
+		<action name="commonActionForm" path="/dataPerm" scope="request" validate="false" parameter="reqCode"
+			type="com.cnnct.sys.web.DataPermAction">
+			<forward name="dataRoleView" path="/arm/manageDataRole.jsp" />
+			<forward name="manageDataUserView" path="/arm/manageUserDataPerm.jsp" />
+		</action>
+
+        <!-- 资源管理 -->
+        <action name="commonActionForm" path="/resource" scope="request" validate="false" parameter="reqCode"
+                type="org.eredlab.g4.arm.web.ResourceAction">
+            <forward name="manageMenuResourceView" path="/arm/manageMenuResource.jsp" />
+            <forward name="codeTableView" path="/arm/manageCodeTable.jsp" />
+            <forward name="manageIconView" path="/arm/manageIcon.jsp" />
+            <forward name="colorPaletteView" path="/arm/colorPalette.jsp" />
+        </action>
+
+        <!-- 组织机构管理 -->
+        <action name="commonActionForm" path="/organization" scope="request" validate="false" parameter="reqCode"
+                type="org.eredlab.g4.arm.web.OrganizationAction">
+            <forward name="manageDepartmentView" path="/arm/manageDepartment.jsp" />
+        </action>
+
+        <!-- 用户人员管理与授权-->
+        <!--<action name="commonActionForm" path="/user" scope="request" validate="false" parameter="reqCode"
+                type="org.eredlab.g4.arm.web.UserAction">
+            <forward name="selectRoleTreeView" path="/arm/selectRoleTree.jsp" />
+            <forward name="selectMenuTreeView" path="/arm/selectMenuTree.jsp" />
+            <forward name="operator4sysGrpView" path="/arm/manageOperator.jsp" />
+            <forward name="cityManagerView" path="/arm/cityManager.jsp" />
+            <forward name="provinceManagerView" path="/arm/provinceManager.jsp" />
+            <forward name="customerManagerView" path="/arm/customerManager.jsp" />
+            <forward name="provinceNormalView" path="/arm/provinceNormalManager.jsp" />
+            <forward name="manageUserPermView" path="/arm/manageUserPerm.jsp" />
+        </action>-->
+
+        <!-- UI组件托管 -->
+        <action name="commonActionForm" path="/part" scope="request" validate="false" parameter="reqCode"
+                type="org.eredlab.g4.arm.web.PartAction">
+            <!--<forward name="initView" path="/arm/managePart.jsp" />-->
+        </action>
+
+        <!-- UI组件角色授权 -->
+        <action name="commonActionForm" path="/rolePart" scope="request" validate="false" parameter="reqCode"
+                type="org.eredlab.g4.arm.web.RolePartAction">
+            <forward name="initView" path="/arm/rolePart.jsp" />
+        </action>
+
+        <!-- 全局参数表管理-->
+		<action name="commonActionForm" path="/param" scope="request" validate="false" parameter="reqCode"
+			type="org.eredlab.g4.arm.web.ParamAction">
+			<forward name="manageParamView" path="/arm/manageParam.jsp" />
+		</action> 
+		
+		<!-- 异常信息管理 -->
+		<action name="commonActionForm" path="/exception" scope="request" validate="false" parameter="reqCode"
+			type="org.eredlab.g4.arm.web.ExceptionAction">
+			<forward name="manageExceptionView" path="/arm/manageException.jsp" />
+		</action> 
+		
+		<!-- 会话监控 -->
+		<action name="commonActionForm" path="/sessionMonitor" scope="request" validate="false" parameter="reqCode"
+			type="org.eredlab.g4.arm.web.HttpSessionMonitorAction">
+			<forward name="sessionMonitorView" path="/arm/sessionMonitor.jsp" />
+		</action> 
+		
+		<!-- JDBC监控 -->
+		<action name="commonActionForm" path="/jdbcMonitor" scope="request" validate="false" parameter="reqCode"
+			type="org.eredlab.g4.arm.web.JdbcMonitorAction">
+			<forward name="jdbcInitView" path="/arm/jdbcMonitor.jsp" />
+		</action>  
+		
+		<!-- 事件跟踪 -->
+		<action name="commonActionForm" path="/eventTrack" scope="request" validate="false" parameter="reqCode"
+			type="org.eredlab.g4.arm.web.EventTrackAction">
+			<forward name="eventTrackView" path="/arm/eventTrack.jsp" />
+		</action> 
+		
+		<!-- SpringBean切面监控 -->
+		<action name="commonActionForm" path="/beanMonitor" scope="request" validate="false" parameter="reqCode"
+			type="org.eredlab.g4.arm.web.BeanMonitorAction">
+			<forward name="beanMonitorView" path="/arm/beanMonitor.jsp" />
+		</action>   
+		
+		<!-- Web报表引擎 -->
+		<action name="commonActionForm" path="/report" scope="request" validate="false" parameter="reqCode"
+			type="org.eredlab.g4.rif.report.jasper.ReportAcion">
+			<forward name="printInitView" path="/resource/jasper/printInit.jsp" />
+			<forward name="pdfInitView" path="/resource/jasper/pdfInit.jsp" />
+			<forward name="excelInitView" path="/resource/jasper/excelInit.jsp" />
+		</action>  
+		
+        <!-- 地区信息管理 -->
+		<action name="commonActionForm" path="/area" scope="request" validate="false" parameter="reqCode"
+			type="org.eredlab.g4.arm.web.AreaInfoAction">
+			<forward name="manageAreaView" path="/arm/manageArea.jsp" />
+			<forward name="manageAplCodeView" path="/arm/manageAplCode.jsp" />
+		</action> 
+		
+		 <!--  职务管理 -->
+        <action name="commonActionForm" path="/duty" scope="request"
+            validate="false" parameter="reqCode" type="org.eredlab.g4.arm.web.DutyAction">
+            <forward name="dutyGrpsView" path="/arm/manageDuty.jsp" />
+        </action>
+        
+        <!--  短信管理 -->
+        <action name="commonActionForm" path="/message" scope="request"
+            validate="false" parameter="reqCode" type="org.eredlab.g4.arm.web.MessageAction">
+            <forward name="messageOpenView" path="/arm/manageMessage.jsp" />
+        </action>
+        
+	</action-mappings>
+	
+</struts-config>

@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<sqlMap>
+    <typeAlias alias="dto"
+               type="org.eredlab.g4.ccl.datastructure.impl.BaseDto"/>
+<!--       修改订单反馈信息        -->
+    <update id="updateFbOrderInfo" parameterClass="dto">
+        update order_info_feedback set remark = #remark#,state = #state#,handle_id = #handle_id#,
+        handle_date = #handle_date#,handle_time=#handle_time#
+        where seq_no = #seq_no#
+   </update>
+<!--         查询反馈订单信息          -->
+    <select id="queryFbOrder" parameterClass="dto" resultClass="dto" remapResults="true" >
+        select a.seq_no,a.order_id,a.style_no,a.ribbon_color,a.handle_date,a.handle_time,a.handle_id,
+        a.opr_date,a.opr_time,a.opr_id,a.state,a.remark,b.user_name as handle_name,
+        c.user_name as opr_name
+        from order_info_feedback a 
+        left join sys_user_info b on a.handle_id = b.account
+        left join sys_user_info c on a.opr_id =c.account
+        <dynamic prepend="where">
+            <isNotEmpty prepend="and" property="opr_name">
+                c.user_name like '%$opr_name$%'
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="opr_id">
+                a.opr_id = #opr_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="seq_no">
+                a.seq_no = #seq_no#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="handle_name">
+                b.user_name like '%$handle_name$%'
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="handle_id"> 
+                a.handle_id = #handle_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="start_date">
+                a.opr_date <![CDATA[>=]]> #start_date#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="end_date">
+                a.opr_date <![CDATA[<=]]> #end_date#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="states">
+                a.state in ($states$)
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="order_id">
+            	a.order_id=#order_id#
+        </isNotEmpty>
+        </dynamic>
+        order by opr_date desc,opr_time desc
+        
+    </select>
+    <insert id="saveOrderFeedback" parameterClass="dto">
+        insert into order_info_feedback(seq_no,order_id,style_no,ribbon_color,state,
+        opr_date,opr_time,opr_id,handle_date,handle_time,handle_id,remark)
+        values (order_info_feedback_seq.nextval,#order_id#,#style_no#,#ribbon_color#,#state#,
+        #opr_date#,#opr_time#,#opr_id#,#handle_date#,#handle_time#,#handle_id#,#remark#)
+    </insert>
+<!--  查询我的工厂信息  -->
+    <select id="queryMyGrps" parameterClass="dto" resultClass="dto" remapResults="true">
+        select a.seq_no, a.grp_id, a.account,a.opr_id,a.opr_date,b.name
+        from user_grp_list a join sys_grps_info b on a.grp_id = b.grp_id
+        where a.account = #account#
+    </select>
+    
+<!--  查询所有的工厂信息  -->
+    <select id="queryAllGrps" parameterClass="dto" resultClass="dto" remapResults="true">
+        select grp_id as id,name as text,belong_grp_id as parentId
+        from sys_grps_info
+        where state = '0'
+    </select>
+    
+<!--  删除用户的工厂信息  -->
+    <delete id="deleteUserGrps" parameterClass="dto">
+        delete from user_grp_list where account = #account#
+    </delete>
+    
+<!--  插入用户工厂信息  -->
+    <insert id="insertUserGrps" parameterClass="dto">
+        insert into user_grp_list(seq_no,grp_id,account,opr_id,opr_date)
+        values(userGrpSequence.nextval,#grp_id#,#account#,#opr_id#,#opr_date#)
+    </insert>
+<!--  查询订单信息，用于设置我的订单，移动端  -->
+    <select id="queryOrder4mobile" parameterClass="dto" resultClass="dto" remapResults="true">
+        select a.seq_no,ord_seq_no,prod_ord_seq,style_no,prodstatus,ribbon_color as mark,
+            (select seq_no from order_operator b
+                where b.ord_seq_no=a.ord_seq_no  and b.prod_ord_seq = a.prod_ord_seq and  account = #account#) as myorder,
+            (select sum(ins_num) from prod_bas_info b 
+                where state = '0' and a.prod_ord_seq = b.prod_ord_seq and a.ord_seq_no = b.ord_seq_no) as ins_num,
+            (select sum(amount) from ord_day_list b
+                where state != '1' and b.order_id = a.ord_seq_no and nature = #nature#) as sendout_product,
+            (select cust_name from bas_cust_list b 
+                where a.cust_id = b.cust_id and state='0') as cust_name
+        from prod_ord_info a
+        <dynamic prepend="where">
+        <!-- 
+        	<isEmpty prepend="and" property="product_flag">
+        		prodstatus != 2 
+        	</isEmpty>
+         -->
+            <isNotEmpty property="style_no" prepend="and">
+                lower(a.style_no) like lower('%$style_no$%')
+            </isNotEmpty>
+            <isNotEmpty property="order_id" prepend="and">
+                lower(a.ord_seq_no) like lower('%$order_id$%')
+            </isNotEmpty>
+        </dynamic>
+    </select>
+<!--  查询我的订单  -->
+    <select id="queryOrderOperator" parameterClass="dto" resultClass="dto" remapResults="true">
+        select a.seq_no,a.ord_seq_no,a.prod_ord_seq,a.account,c.fob_deal_date,c.article,
+            (select cust_name from bas_cust_list b where b.cust_id = c.cust_id)as cust_name,
+            (select ribbon_color from prod_ord_info b 
+                where a.prod_ord_seq = b.prod_ord_seq and a.ord_seq_no=b.ord_seq_no) as mark,
+            (select style_no from prod_ord_info b 
+                where a.prod_ord_seq = b.prod_ord_seq and a.ord_seq_no=b.ord_seq_no) as style_no,
+            (select sum(ins_num) from prod_bas_info b 
+                where state = '0' and a.prod_ord_seq = b.prod_ord_seq and a.ord_seq_no = b.ord_seq_no) as ins_num
+        from order_operator a join prod_ord_info c on a.prod_ord_seq=c.prod_ord_seq 
+        <dynamic prepend="where">
+            <isNotEmpty prepend="and" property="seq_no">
+                a.seq_no = #seq_no#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="ord_seq_no">
+                a.ord_seq_no = #ord_seq_no#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="prod_ord_seq">
+                a.prod_ord_seq = #prod_ord_seq#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="account">
+                a.account = #account#
+            </isNotEmpty>
+        </dynamic>
+        </select>
+<!-- 查询当前累计量 -->
+        <select id="queryCountNum4mobile" parameterClass="dto" resultClass="dto" remapResults="true">
+            select sum(amount) as amount,sum(a_class_count) as a,sum(b_class_count) as b,sum(c_class_count) as c,nature,order_id  
+            from ord_day_list where state != '1'
+            and order_id = '$order_id$'
+            group by nature,order_id
+        </select>        
+<!--  查询我的权限  -->
+    <select id="queryMyMenuauth" parameterClass="dto" resultClass="dto" remapResults="true">
+        select menu_id,menu_name,parent_id from sys_menu_info 
+		where (menu_id in (select menu_id from sys_role_menuauth 
+		        where role_id in (select a.role_id 
+		          from sys_user_rolemap a,sys_user_info b where a.user_id=b.user_id and b.account=#account#))
+		       or '9' = #user_type#
+		        )
+		start with menu_id = #menu_id#
+		connect by prior menu_id = parent_id
+    </select>
+    <select id="queryOrdDayList4mobile" parameterClass="dto" resultClass="dto" remapResults="true">
+        select a.seq_no,a.grp_id,a.tr_date,a.nature,a.amount,a.opr_id,a.opr_time,a.state,
+        a.ord_status, a.dept_status,b.user_name as opr_name,c.ord_seq_no,c.style_no,c.ribbon_color,
+        d.name as grp_name,e.dept_name,f.name as team_name
+        from ord_day_list a
+        left join sys_user_info b on a.opr_id=b.account
+        left join prod_ord_info c on a.order_id = c.ord_seq_no
+        left join sys_grps_info d on a.grp_id = d.grp_id
+        left join sys_dept_info e on a.dept_id = e.dept_id
+        left join sys_team_info f on a.team_no = f.team_no
+        where a.state != '1'
+        <isNotEmpty prepend="and" property="opr_id">
+            a.opr_id = #opr_id#
+        </isNotEmpty>
+        <isNotEmpty prepend="and" property="opr_date">
+            substr(a.opr_time,1,10) = #opr_date#
+        </isNotEmpty>
+        <isNotEmpty prepend="and" property="tr_date">
+            a.tr_date = #tr_date#
+        </isNotEmpty>
+        
+    </select>
+</sqlMap>

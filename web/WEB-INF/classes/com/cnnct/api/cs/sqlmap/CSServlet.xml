@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<!-- 资源模型手工映射SQL语句 -->
+<sqlMap>
+    <typeAlias alias="dto" type="org.eredlab.g4.ccl.datastructure.impl.BaseDto" />
+
+    <!-- 获取订单信息 -->
+    <select id="queryOrdBasInfo4CSServelt" parameterClass="map" resultClass="dto" remapResults="true">
+        select a.seq_no,a.order_date,a.cust_id,a.brand,a.contract_id,a.order_id,
+        case when b.cust_name is null then a.cust_id else b.cust_name end as cust_name,
+        a.style_no,a.article,a.classify,a.material,a.order_num,a.percent,a.deli_date,
+        a.merchandier,a.approved,a.assign_num,a.box_ins,a.point_notes,a.style_drawing,
+        a.size_chart,a.accessory_list,a.process_quota,a.process_desc,a.pattern_code,
+        a.verify,a.prod_plan,a.num_detail_list,a.state
+        from ORD_BAS_INFO a
+        left join BAS_CUST_LIST b on b.cust_id=a.cust_id
+        where a.state !='1'
+        <isNotEmpty prepend="AND" property="seq_no">
+            a.seq_no =#seq_no#
+        </isNotEmpty>
+        <isNotEmpty prepend="AND" property="order_id">
+            a.order_id =#order_id#
+        </isNotEmpty>
+        <isNotEmpty prepend="AND" property="cust_name">
+            b.cust_name like '%$cust_name$%'
+        </isNotEmpty>
+        order by a.seq_no
+    </select>
+
+    <!--<select id="queryProdOrdInfo4CSServelt" parameterClass="map" resultClass="dto" remapResults="true">
+        select a.seq_no,a.cust_id,a.brand,a.style_no,a.contract_id,a.ord_seq_no,a.article,a.classify,
+        a.material,a.order_num,a.percent_j,a.percent_w,a.delivery_date,a.process_desc,a.orig_contract,
+        a.box_ins,a.pack_ins,a.style_drawing,a.size_chart,a.process_quota,a.notity_date,a.batch,
+        a.add_proportion,a.pattern_code,a.opr_name,a.opr_date,a.prod_plan_seq,a.status,a.state,
+        case when b.cust_name is null then a.cust_id else b.cust_name end as cust_name,
+        c.sew_fac,c.bach_fac,c.pack_fac,c.sew_delivery_date,c.bach_delivery_date,
+        c.pack_delivery_date,c.plan_check,c.purchase_check,c.trade_check,c.plan_check_date,
+        c.purchase_check_date,c.trade_check_date,c.seq_no as plan_seq_no,c.state as plan_state,
+        d.order_date as order_date,d.order_id
+        from PROD_ORD_INFO a
+        left join BAS_CUST_LIST b on b.cust_id =a.cust_id
+        left join PROD_PLAN_INFO c on c.prod_ord_seq =a.seq_no
+        left join ORD_BAS_INFO d on d.seq_no =a.ord_seq_no
+        where a.state !='1'
+        <isNotEmpty prepend="AND" property="ord_seq_no">
+            a.ord_seq_no =#ord_seq_no#
+        </isNotEmpty>
+        <isNotEmpty prepend="AND" property="cust_name">
+            b.cust_name like '%$cust_name$%'
+        </isNotEmpty>
+        order by a.seq_no
+    </select>-->
+
+    <select id="queryProdOrdInfo4CSServelt" parameterClass="map" resultClass="dto" remapResults="true">
+        select a.seq_no,a.prod_ord_seq,a.ord_seq_no,a.style_no,a.ins_num as totalcount,
+        a.ord_num,case when a.cut_num is null then 0 else a.cut_num end as finishedcount,a.order_id from
+        (select a.seq_no,a.prod_ord_seq,a.ord_seq_no,a.style_no,a.state,a.ord_seq_no as order_id,
+            b.ins_num, b.ord_num,b.cut_num
+            from prod_ord_info a left join
+            (select sum(ins_num) as ins_num, sum(ord_num) as ord_num, sum(cut_num) as cut_num,prod_ord_seq
+                from prod_bas_info group by prod_ord_seq) b
+            on a.prod_ord_seq = b.prod_ord_seq) a
+        where prod_ord_seq = #prod_ord_seq# and state!='1'
+    </select>
+
+    <select id="getProdBasInfoSeqByProdOrdId" parameterClass="dto" resultClass="dto" remapResults="true">
+        select product_id,prod_ord_seq,ord_seq_no,prod_ord_seq,style_no_seq_no,style_no,country_seq_no,country,
+        color_seq_no,color,cloth_size_seq_no,in_length,waist,print_seq_no,print,wash_seq_no,wash from
+        prod_bas_info where prod_ord_seq = #prod_ord_seq#
+    </select>
+
+    <select id="queryProdOrdInfoByEpc4CSServlet" parameterClass="dto" resultClass="dto" remapResults="true">
+        select a.product_id,a.epc,b.prod_ord_seq,b.ord_seq_no,b.prod_ord_seq,b.style_no,b.country,
+        b.color,b.in_length,b.waist,b.print,b.wash from
+        epc_prod_list a left join prod_bas_info b on a.product_id = b.product_id
+        where a.epc = #epc# and a.state = #state#
+    </select>
+    
+<!--  查询批次的epc  -->
+    <select id="queryProdBasInfo4BatchEpc" parameterClass="dto" resultClass="dto" remapResults = "true">
+    	select a.product_id,a.epc,b.prod_ord_seq,b.ord_seq_no,b.style_no,b.country,
+        b.color,b.in_length,b.waist,b.print,b.wash,a.nature
+    	from epc_prod_list a left join prod_bas_info b on a.product_id= b.product_id 
+    	where a.epc in ($epc$) and a.state = #state#
+    	<isNotEmpty prepend="AND" property="nature">
+    		a.nature in ($nature$)
+    	</isNotEmpty>
+    </select>
+
+	<update id="updateRemoveEpcProdListInfo">
+		update epc_prod_list set nature = #nature#,state = #state#
+		where epc=#epc# and product_id=#product_id#
+	</update>
+
+    <select id="getProdBasInfo4CSServelt" parameterClass="map" resultClass="dto">
+        select a.product_id,case when a.real_num is null then 0 else a.real_num end as real_num,
+            case when a.ins_num is null then 0 else a.ins_num end as ins_num,
+            case when a.cut_num is null then 0 else a.cut_num end as cut_num,
+        a.style_no_seq_no,a.color_seq_no,a.cloth_size_seq_no
+        from prod_bas_info a
+        <dynamic prepend="WHERE">
+            <isNotEmpty prepend="AND" property="prod_ord_seq">
+                a.prod_ord_seq = #prod_ord_seq#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="style_no">
+                a.style_no = #style_no#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="color">
+                a.color = #color#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="cloth_size">
+                a.waist||','||a.in_length = $cloth_size$
+            </isNotEmpty>
+        </dynamic>
+    </select>
+
+</sqlMap>

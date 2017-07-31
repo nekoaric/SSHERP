@@ -1,0 +1,591 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<!-- 资源模型手工映射SQL语句 -->
+<sqlMap>
+    <typeAlias alias="dto" type="org.eredlab.g4.ccl.datastructure.impl.BaseDto"/>
+    
+    
+	<!-- 查询部门绑定的数量性质 -->
+	<select id="queryBindNatures4dept" parameterClass="dto" resultClass="dto">
+		select distinct a.nature as value,b.code_desc as text 
+		from sys_dept_nature a , sys_code_info b 
+			where  a.nature = b.code 
+			and b.field = #naturetype# 
+			and dept_id in (select dept_id from sys_dept_info 
+                                start with dept_id = #dept_id#
+                                connect by prior dept_id = parent_id)
+		order by a.nature
+	</select>
+    <select id="queryordScheList4rollback" parameterClass="dto" resultClass="dto">
+          select b.order_id,a.real_cut_num,a.draw_num,a.sew_num,a.bach_accept_num,a.bach_delivery_num,a.
+        pack_accept_num,a.f_product_num,a.b_product_num,a.receive_f_product,a.receive_b_product,a.middle_take,a.
+        sew_delivery_num,a.sendout_f_product,a.sendout_b_product, b.order_date,b.cust_id,b.style_no,b.article,b.classify,
+        (select sum(ins_num) from prod_bas_info c where c.ord_seq_no = b.order_id)as ins_num
+        from  ord_bas_info b  left join ord_sche_list a  on a.order_id = b.order_id 
+        where b.order_id = #order_id#
+    </select>
+	<insert id="rollback4ProdList" parameterClass="dto">
+		insert into rollback_prod_list(seq_no,amount,tr_date,batchno,grp_id,dept_id,team_no,trm_id,
+		epc,ord_seq_no,prod_ord_seq,style_no,bill_no,naturea,natureb,submitname,surename,opr_id,opr_time,
+		driver,remark,data_nature,flag,ord_status,prodord_status) 
+		values(prod_back_list_seq.nextval,$amount$,#tr_date#,#batchno#,#grp_id#,#dept_id#,#team_no#,#trm_id#,#epc#,
+		#ord_seq_no#,#prod_ord_seq#,#style_no#,#bill_no#,#naturea#,#natureb#,#submitname#,#surename#,#opr_id#,#opr_time#,
+		#driver#,#remark#,#data_nature#,#flag#,#ord_status#,#prodord_status#)
+	</insert>
+    <select id="getGrpDeptTreeByRecordManage" parameterClass="dto" resultClass="dto">
+        select a.dept_id,a.dept_name,a.parent_id,a.leaf,b.grp_id,b.name,
+        GETBELONGGRPID(a.dept_id) as belong_grp_id,
+        GETBELONGGRPNAME(a.dept_id) as belong_grp_name
+        from sys_dept_info a ,sys_grps_info b
+        where a.dept_id = b.match_dept_id(+) and a.dept_state ='0'
+        <isNotEmpty property="cascadeDept_id" prepend="and">
+	        dept_id in ((select dept_id from sys_dept_info c
+	            start with dept_id = #cascadeDept_id#
+	            connect by prior parent_id = dept_id)
+	            union 
+	            (select dept_id from sys_dept_info d
+	            start with dept_id = #cascadeDept_id#
+	            connect by prior dept_id = parent_id)
+	        )
+        </isNotEmpty>
+        <isNotEmpty property="naturedept" prepend="and">
+        	exists (select * from sys_dept_nature where dept_id in(
+						select dept_id from sys_dept_info 
+                                start with dept_id = a.dept_Id
+                                connect by prior dept_id = parent_id) )
+        </isNotEmpty>
+        order by a.dept_id
+    </select>
+
+    <select id="getGrpTreeByRecordManage" parameterClass="dto" resultClass="dto">
+        select a.grp_id,a.name,a.match_dept_id,a.belong_grp_id,
+        case when b.belong_grp_id is null then '1' else '0' end as isleaf
+        from sys_grps_info a ,(select belong_grp_id from sys_grps_info group by belong_grp_id)b
+        where a.state = '0'and a.grp_id = b.belong_grp_id(+)
+        <isNotEmpty property="treetype" prepend="and">
+        	exists (select 1 from sys_dept_nature 
+                where dept_id in (
+                select dept_id from sys_dept_info 
+                start with a.match_dept_id = dept_id
+                connect by prior dept_id = parent_id
+                ))
+        </isNotEmpty>
+        order by a.grp_id
+    </select>
+
+    <select id="getMatchDeptIdByGrpId" parameterClass="dto" resultClass="dto">
+        select grp_id,name,match_dept_id,belong_grp_id 
+        from sys_grps_info 
+        where grp_id = #grp_id#
+    </select>
+
+    <select id="getDeptTreeByRecordManage" parameterClass="dto" resultClass="dto">
+        select a.dept_id,a.dept_name,a.parent_id,a.leaf,b.grp_id,b.name,
+        GETBELONGGRPID(a.dept_id) as belong_grp_id,
+        GETBELONGGRPNAME(a.dept_id) as belong_grp_name
+        from sys_dept_info a ,sys_grps_info b
+        where a.dept_id = b.match_dept_id(+) and a.dept_state ='0'
+        <isNotEmpty prepend="and" property="dept_id">
+            a.dept_id like '$dept_id$%'
+        </isNotEmpty>
+        <isNotEmpty property="treetype" prepend="and">
+        	exists (select 1 from sys_dept_nature 
+                where dept_id in (
+                select dept_id from sys_dept_info 
+                start with a.dept_id = dept_id
+                connect by prior dept_id = parent_id
+                ))
+        </isNotEmpty>
+        order by a.dept_id
+    </select>
+
+    <select id="getSysTeamTreeByRecordManage" parameterClass="dto" resultClass="dto">
+        select team_no,dept_id,name,GETBELONGGRPID(dept_id) as belong_grp_id,
+        GETBELONGGRPNAME(dept_id) as belong_grp_name from sys_team_info a
+        where state ='0'
+        <isNotEmpty prepend="and" property="cascadeDept_id">
+            dept_id in ((select dept_id from sys_dept_info c
+                start with dept_id = #cascadeDept_id#
+                connect by prior parent_id = dept_id)
+                union 
+                (select dept_id from sys_dept_info d
+                start with dept_id = #cascadeDept_id#
+                connect by prior dept_id = parent_id)
+            )
+        </isNotEmpty>
+        <isNotEmpty prepend="and" property="dept_id">
+            dept_id = #dept_id#
+        </isNotEmpty>
+        <isNotEmpty property="naturedept" prepend="and">
+        	exists (select * from sys_dept_nature where dept_id in(
+						select dept_id from sys_dept_info 
+                                start with dept_id = a.dept_Id
+                                connect by prior dept_id = parent_id) )
+        </isNotEmpty>
+    </select>
+    <!-- 查询部门所属对应的工厂 -->
+    <select id="queryGrp4detpid" parameterClass="dto" resultClass="dto">
+        select match_dept_id as dept_id from sys_grps_info a,(select max(to_number(grp_id)) as grp_id from sys_grps_info where match_dept_id in (select dept_id from sys_dept_info
+			start with dept_id = #dept_id#
+			connect by prior parent_id = dept_id))b 
+			where a.grp_id = b.grp_id
+    </select>
+
+    <select id="getOrdStyleTreeByRecordManage" parameterClass="dto" resultClass="dto">
+        select a.order_id,max(a.style_no) as style_no,max(b.ribbon_color) as ribbon_color  
+        from ord_bas_info a,prod_ord_info b,prod_plan_info c
+        where a.order_id = b.ord_seq_no and b.prod_ord_seq = c.prod_ord_seq
+        and (c.sew_fac =#belong_grp_id# or bach_fac =#belong_grp_id# or pack_fac =#belong_grp_id#)
+        <isNotEmpty prepend="and" property="prodstatus">
+            b.prodstatus = #prodstatus#
+        </isNotEmpty>
+        group by a.order_id
+    </select>
+    <!-- 查询流水信息记录，修改回退信息时使用 -->
+    <select id="queryOrdDayList4Change" parameterClass="dto" resultClass="dto">
+        select seq_no,tr_date,amount,nature,order_id,style_no,article,ord_status,prodord_status
+        from ord_day_list where seq_no = #seq_no# and state = #state#
+    </select>
+    <select id="queryOrdDayListByRecordManage" parameterClass="dto" resultClass="dto" remapResults="true">
+        select a.seq_no,a.tr_date,a.opr_time as
+        tr_time,a.grp_id,a.dept_id,a.team_no,a.nature,a.amount,a.order_id,a.ord_status,
+        b.style_no,b.article,c.name as grp_name,d.dept_name,e.name as team_name,a.submit_name,a.sure_name,
+        a.driver,a.remark,f.cust_name,g.ribbon_color,case when t.status is null then '0' when t.status ='0' then '1'
+        else '2' end as status,a.cust_id,k.ins_num
+        from ord_day_list a,ord_bas_info b,sys_grps_info c, sys_dept_info d,sys_team_info e,bas_cust_list f,prod_ord_info g ,
+        (select min(status) as status,ord_day_list_seq_no from ord_day_updatelist t group by ord_day_list_seq_no) t
+        ,(select sum(ins_num)as ins_num,ord_seq_no as order_id from prod_bas_info group by ord_seq_no)k
+        where a.order_id = b.order_id and a.grp_id = c.grp_id(+) and a.dept_id = d.dept_id(+)
+        and a.dept_id = e.dept_id(+) and a.team_no = e.team_no(+) and b.cust_id = f.cust_id
+        and b.order_id =g.ord_seq_no
+        and a.order_id = k.order_id(+)
+        and a.seq_no = t.ord_day_list_seq_no (+)
+        and a.state ='0'
+        <isNotEmpty prepend="and" property="seq_no">
+            a.seq_no = #seq_no#
+        </isNotEmpty>
+        <isNotEmpty prepend="and" property="order_id">
+            a.order_id = #order_id#
+        </isNotEmpty>
+        <isNotEmpty prepend="and" property="query_order">
+            lower(a.order_id) like '%$query_order$%'
+        </isNotEmpty>
+        <isNotEmpty prepend="and" property="cust_id">
+            f.cust_id = #cust_id#
+        </isNotEmpty>
+        <isNotEmpty prepend="and" property="style_no">
+            lower(b.style_no) like '%$style_no$%'
+        </isNotEmpty>
+        <isNotEmpty prepend="and" property="grp_id">
+            a.grp_id = #grp_id#
+        </isNotEmpty>
+        <isNotEmpty prepend="and" property="dept_id">
+            a.dept_id = #dept_id#
+        </isNotEmpty>
+        <isNotEmpty prepend="and" property="team_no">
+            a.team_no = #team_no#
+        </isNotEmpty>
+        <isNotEmpty prepend="and" property="nature">
+            a.nature in ($nature$)
+        </isNotEmpty>
+        <isNotEmpty prepend="and" property="prodstatus">
+            g.prodstatus = #prodstatus#
+        </isNotEmpty>
+        <isNotEmpty prepend="and" property="start_date">
+            a.tr_date <![CDATA[>=]]> #start_date#
+        </isNotEmpty>
+        <isNotEmpty prepend="and" property="end_date">
+            a.tr_date <![CDATA[<=]]> #end_date#
+        </isNotEmpty>
+        order by a.seq_no desc
+    </select>
+
+    <select id="loadOrdBasInfoByRecordManage" parameterClass="dto" resultClass="dto" remapResults="true">
+        select
+        a.order_date,a.cust_id,a.order_id,a.style_no,a.article,a.classify,b.cust_name,c.ribbon_color,d.ins_num,e.finish_num
+        from ord_bas_info a ,bas_cust_list b ,prod_ord_info c,
+        (select prod_ord_seq,sum(ins_num) as ins_num from prod_bas_info group by prod_ord_seq) d,
+        (select order_id,sum(amount) as finish_num from ord_day_list where state ='0' and nature = #nature#
+        <isNotEmpty prepend="and" property="current_seq_no">
+            seq_no!= #current_seq_no#
+        </isNotEmpty>
+        group by order_id) e
+        where a.cust_id = b.cust_id and a.order_id = c.ord_seq_no and c.prod_ord_seq = d.prod_ord_seq(+)
+        and a.order_id = e.order_id(+)
+        <isNotEmpty prepend="and" property="order_id">
+            a.order_id = #order_id#
+        </isNotEmpty>
+    </select>
+    <!-- 查询某一订单下的一个流程的数量统计(需要计算回退的流程数量-正常流程所处的所有回退流程的过程中
+                        和正常的流程数量) 查询所有非无效数据的数据，包括在修改和删除的时候修改状态所产生的数据-->
+    <select id="getOrdAmountByNatureValide" parameterClass="dto" resultClass="dto" remapResults="true">
+        select d.ord_seq_no as order_id,d.style_no,nvl(a.nature,-1)as nature,nvl(a.amount,0)as amount,nvl(c.rollbacknature,-1) as rollbacknature,
+        nvl(c.rollbackamount,0) as rollbackamount,nvl(a.amount,0)-nvl(c.rollbackamount,0) as resultamount,
+        (select sum(d.ins_num) as ins_num from prod_bas_info d where d.ord_seq_no=#order_id#) as ins_num
+            from (select * from prod_ord_info where ord_seq_no = #order_id# and style_no = #style_no# and state='0') d  left join (select max(order_id) as order_id,max(style_no) as style_no,sum(amount) as amount,max(nature) as nature 
+                    from ord_day_list
+                   where state!='1' and style_no =#style_no# and nature in ($startnature$) and order_id = #order_id# group by order_id,style_no) a
+               on d.ord_seq_no = a.order_id and d.style_no = a.style_no
+               left join (select max(order_id) as order_id,max(style_no) as style_no,sum(amount) as rollbackamount,max(nature) as rollbacknature 
+                       from ord_day_list where state != '1' and style_no =#style_no# 
+                       and nature in ($nature$)
+                       and order_id = #order_id#)c 
+                       on a.order_id=c.order_id
+               and a.style_no= c.style_no
+   
+    </select>
+    <select id="getOrdAmountByNuture" parameterClass="dto" resultClass="dto" remapResults="true">
+        select
+        a.order_date,a.cust_id,a.order_id,a.style_no,a.article,a.classify,b.ins_num,nvl(c.finish_num,0) as finish_num,
+        nvl(d.finish_num,0) as pre_finish_num
+        from ord_bas_info a ,
+        (select ord_seq_no,sum(ins_num) as ins_num from prod_bas_info group by ord_seq_no) b,
+        (select order_id,sum(amount) as finish_num from ord_day_list where state ='0' and nature = #nature#
+        <isNotEmpty prepend="and" property="current_seq_no">
+            seq_no!= #current_seq_no#
+        </isNotEmpty>
+        group by order_id) c,
+        (select order_id,sum(amount) as finish_num from ord_day_list where state ='0' and nature = #pre_nature#
+        <isNotEmpty prepend="and" property="current_seq_no">
+            seq_no!= #current_seq_no#
+        </isNotEmpty>
+        group by order_id) d
+        where a.order_id = b.ord_seq_no  and a.order_id = c.order_id(+) and a.order_id = d.order_id(+)
+        <isNotEmpty prepend="and" property="order_id">
+            a.order_id = #order_id#
+        </isNotEmpty>
+    </select>
+
+
+    <select id="queryUserInfoByRecordManage" parameterClass="map" resultClass="dto" remapResults="true">
+        SELECT a.user_id, a.user_name, a.dept_id, a.account,a.user_type,a.per_no,a.grp_id,a.id_crd,
+        a.birthday,a.duty,a.address,a.tel_no,a.mbl_no,a.err_num,a.opn_opr_id,a.opn_date,a.cls_opr_id,
+        a.cls_date,a.state,a.csn,case a.sex when '1' then '男' when '2' then '女' end as sex,a.remark,
+        b.dept_name
+        FROM sys_user_info a,sys_dept_info b
+        where a.dept_id = b.dept_id and a.user_type ='1'
+        <isNotEmpty prepend="AND" property="dept_id">
+            a.dept_id like '$dept_id$%'
+        </isNotEmpty>
+        <isNotEmpty prepend="AND" property="user_name">
+            a.user_name like '%$user_name$%'
+        </isNotEmpty>
+        <isNotEmpty prepend="AND" property="per_no">
+            a.account like '%$per_no$%'
+        </isNotEmpty>
+        order by a.user_id
+    </select>
+
+    <select id="loadUserInfoByCsn" parameterClass="dto" resultClass="dto" remapResults="true">
+        select a.*
+        from sys_user_info a where a.csn = #csn#
+    </select>
+
+    <update id="updateCsnByUserId" parameterClass="dto">
+        update sys_user_info set csn = #csn#
+        where user_id = #user_id#
+    </update>
+
+    <!--  插入订单记录流水表 -->
+    <insert id="insertOrdDayListByRecordManage" parameterClass="dto">
+        insert into ord_day_list
+        (seq_no,tr_date,grp_id,dept_id,team_no,order_id,nature,amount,opr_id,opr_time,submit_name,
+        sure_name,driver,state,remark,cust_id,cust_name,style_no,article,mark,submit_id,sure_id,driver_id)
+        values
+        (#fk_odl_seq#,#tr_date#,#grp_id#,#dept_id#,#team_no#,#order_id#,#nature#,
+        #amount#,#opr_id#,#opr_time#,#submit_name#,#sure_name#,#driver#,#state#,#remark#,
+        #cust_id#,#cust_name#,#style_no#,#article#,#mark#,#submit_id#,#sure_id#,#driver_id#)
+    </insert>
+
+    <update id="updateOrdDayListByRecordManage" parameterClass="dto">
+        update ord_day_list set grp_id = #grp_id#,dept_id = #dept_id#,team_no = #team_no#,
+        nature = #nature#,amount = #amount# , remark = #remark#
+        where seq_no = #seq_no#
+    </update>
+    <!-- 按照规则修改流水状态 -->
+    <update id="updateOrdDayListState4Chage" parameterClass="dto">
+        update ord_day_list set state = #state#
+        where seq_no = #seq_no# and state = #startstate#
+    </update>
+    <update id="deleteOrdDayListByRecordManage" parameterClass="dto">
+        update ord_day_list set state = #state#
+        where seq_no = #seq_no#
+    </update>
+    
+    <insert id="insertOrdDayUpdateList" parameterClass="dto">
+        insert into ord_day_updatelist
+        (seq_no,ord_day_list_seq_no,grp_id,dept_id,team_no,before_nature,before_amount,after_nature,
+        after_amount,opr_id,opr_time,status,state,remark)
+        values
+        (seq_ord_day_updatelist_seq_no.nextval,#ord_day_list_seq_no#,#grp_id#,#dept_id#,#team_no#,
+        #before_nature#,#before_amount#,#after_nature#,#after_amount#,#opr_id#,#opr_time#,
+        #status#,#state#,#remark#)
+    </insert>
+
+    <!--更新订单日总记录-->
+    <update id="updateOrdDayScheNatureAmount" parameterClass="dto">
+        update ord_day_sche
+        <dynamic prepend="set">
+            <isNotEmpty prepend="," property="real_cut_num">
+                real_cut_num =real_cut_num+#real_cut_num#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="draw_num">
+                draw_num =draw_num+#draw_num#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="sew_num">
+                sew_num = sew_num+#sew_num#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="bach_accept_num">
+                bach_accept_num =bach_accept_num+#bach_accept_num#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="bach_delivery_num">
+                bach_delivery_num =bach_delivery_num+#bach_delivery_num#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="pack_accept_num">
+                pack_accept_num =pack_accept_num+#pack_accept_num#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="f_product_num">
+                f_product_num = f_product_num+#f_product_num#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="b_product_num">
+                b_product_num = b_product_num+#b_product_num#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="receive_f_product">
+                receive_f_product = receive_f_product+#receive_f_product#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="receive_b_product">
+                receive_b_product = receive_b_product+#receive_b_product#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="middle_take">
+                middle_take = middle_take+#middle_take#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="sew_delivery_num">
+                sew_delivery_num = sew_delivery_num + #sew_delivery_num#
+            </isNotEmpty>
+              <isNotEmpty prepend="," property="sendout_f_product">
+                sendout_f_product = sendout_f_product +#sendout_f_product#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="sendout_b_product">
+                sendout_b_product = sendout_b_product +#sendout_b_product#
+            </isNotEmpty>
+        </dynamic>
+        where order_id = #order_id# and tr_date = #tr_date#
+    </update>
+    
+    <!--更新生产通知单日记录-->
+    <update id="updateProdordDayScheNatureAmount" parameterClass="dto">
+        update prodord_day_sche
+        <dynamic prepend="set">
+            <isNotEmpty prepend="," property="real_cut_num">
+                real_cut_num =real_cut_num+#real_cut_num#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="draw_num">
+                draw_num =draw_num+#draw_num#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="sew_num">
+                sew_num = sew_num+#sew_num#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="bach_accept_num">
+                bach_accept_num =bach_accept_num+#bach_accept_num#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="bach_delivery_num">
+                bach_delivery_num =bach_delivery_num+#bach_delivery_num#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="pack_accept_num">
+                pack_accept_num =pack_accept_num+#pack_accept_num#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="f_product_num">
+                f_product_num = f_product_num+#f_product_num#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="b_product_num">
+                b_product_num = b_product_num+#b_product_num#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="receive_f_product">
+                receive_f_product = receive_f_product+#receive_f_product#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="receive_b_product">
+                receive_b_product = receive_b_product+#receive_b_product#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="middle_take">
+                middle_take = middle_take+#middle_take#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="sew_delivery_num">
+                sew_delivery_num = sew_delivery_num + #sew_delivery_num#
+            </isNotEmpty>
+              <isNotEmpty prepend="," property="sendout_f_product">
+                sendout_f_product = sendout_f_product +#sendout_f_product#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="sendout_b_product">
+                sendout_b_product = sendout_b_product +#sendout_b_product#
+            </isNotEmpty>
+        </dynamic>
+        where order_id = #order_id# and tr_date = #tr_date#
+    </update>
+    
+     <!--更新生产通知单总记录-->
+    <update id="updateProdordScheListNatureAmount" parameterClass="dto">
+        update prodord_sche_list
+        <dynamic prepend="set">
+            <isNotEmpty prepend="," property="real_cut_num">
+                real_cut_num =real_cut_num+#real_cut_num#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="draw_num">
+                draw_num =draw_num+#draw_num#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="sew_num">
+                sew_num = sew_num+#sew_num#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="bach_accept_num">
+                bach_accept_num =bach_accept_num+#bach_accept_num#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="bach_delivery_num">
+                bach_delivery_num =bach_delivery_num+#bach_delivery_num#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="pack_accept_num">
+                pack_accept_num =pack_accept_num+#pack_accept_num#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="f_product_num">
+                f_product_num = f_product_num+#f_product_num#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="b_product_num">
+                b_product_num = b_product_num+#b_product_num#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="receive_f_product">
+                receive_f_product = receive_f_product+#receive_f_product#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="receive_b_product">
+                receive_b_product = receive_b_product+#receive_b_product#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="middle_take">
+                middle_take = middle_take+#middle_take#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="sew_delivery_num">
+                sew_delivery_num = sew_delivery_num + #sew_delivery_num#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="sendout_f_product">
+                sendout_f_product = sendout_f_product +#sendout_f_product#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="sendout_b_product">
+                sendout_b_product = sendout_b_product +#sendout_b_product#
+            </isNotEmpty>
+        </dynamic>
+        where order_id = #order_id#
+        <isNotEmpty prepend="AND" property="style_no">
+            style_no = #style_no#
+        </isNotEmpty>
+    </update>
+    
+    <!--更新订单日总记录-->
+    <update id="updateOrdScheListNatureAmount" parameterClass="dto">
+        update ord_sche_list
+        <dynamic prepend="set">
+            <isNotEmpty prepend="," property="real_cut_num">
+                real_cut_num =real_cut_num+#real_cut_num#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="draw_num">
+                draw_num =draw_num+#draw_num#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="sew_num">
+                sew_num = sew_num+#sew_num#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="bach_accept_num">
+                bach_accept_num =bach_accept_num+#bach_accept_num#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="bach_delivery_num">
+                bach_delivery_num =bach_delivery_num+#bach_delivery_num#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="pack_accept_num">
+                pack_accept_num =pack_accept_num+#pack_accept_num#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="f_product_num">
+                f_product_num = f_product_num+#f_product_num#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="b_product_num">
+                b_product_num = b_product_num+#b_product_num#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="receive_f_product">
+                receive_f_product = receive_f_product+#receive_f_product#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="receive_b_product">
+                receive_b_product = receive_b_product+#receive_b_product#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="middle_take">
+                middle_take = middle_take+#middle_take#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="sew_delivery_num">
+                sew_delivery_num = sew_delivery_num + #sew_delivery_num#
+            </isNotEmpty>
+              <isNotEmpty prepend="," property="sendout_f_product">
+                sendout_f_product = sendout_f_product +#sendout_f_product#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="sendout_b_product">
+                sendout_b_product = sendout_b_product +#sendout_b_product#
+            </isNotEmpty>
+        </dynamic>
+        where order_id = #order_id#
+    </update>
+
+    <update id="updateOrdDayUpdateList" parameterClass="dto">
+        update ord_day_updatelist set status = #status#
+        where ord_day_list_seq_no = #ord_day_list_seq_no#
+    </update>
+
+    <select id="getOrdDayUpdateList4Quartz" parameterClass="dto" resultClass="dto">
+        select
+        a.seq_no,a.tr_date,a.order_id,a.nature,a.amount,a.ord_status,a.state,
+        b.grp_id,b.dept_id,b.team_no,b.after_nature,b.after_amount,b.opr_id,b.opr_time
+        from ord_day_list a, ord_day_updatelist b ,
+        (select max(seq_no) as seq_no,ord_day_list_seq_no from ord_day_updatelist group by ord_day_list_seq_no) c
+        where a.seq_no = c.ord_day_list_seq_no and c.seq_no = b.seq_no
+        and a.ord_status = '1' and b.status = '0'
+    </select>
+    <select id="getOrdDayListSeqVal"  resultClass="dto">
+        select SEQ_ORD_DAY_LIST_SEQ_NO.currval from dual
+    </select>
+     <select id="queryProdBasInfo4ProNum" parameterClass="map" resultClass="dto" remapResults="true">
+        select product_id,country,COLOR,IN_LENGTH,WAIST,
+        case when ins_num is null then 0 else ins_num end as ins_num,
+        case when real_cut_num is null then 0 else real_cut_num end as real_cut_num,
+        case when DREW_NUM is null then 0 else DREW_NUM end as DREW_NUM,
+        case when PRODUCT_NUM is null then 0 else PRODUCT_NUM end as PRODUCT_NUM 
+        From PROD_BAS_INFO 
+        where ord_seq_no=#ord_seq_no# and state !='1'
+    </select>
+    <select id="query4ProdOrdSeq" parameterClass="dto" resultClass="dto" >
+        select prod_ord_seq from prod_ord_info where ord_seq_no=#ord_seq_no#
+    </select>
+    
+    <!--插入产品信息 -->
+    <insert id="insertOrdSizeInfo" parameterClass="dto">
+        insert into ORD_SIZE_INFO (
+        seq_no,nature,order_id,country,color,in_length,waist,num,statue,FK_ODL_SEQ) 
+        values 
+        (SEQ_ORD_SIZE_INFO.NEXTVAL,#nature#,#order_id#,#country#,#color#,#in_length#,#waist#,#num#,#statue#,#fk_odl_seq#)
+    </insert>
+    
+    <select id="getOrdSizeInfoFK"  resultClass="dto" >
+    	SELECT seq_ord_day_list_seq_no.NEXTVAL as fk_seq from dual 
+    </select>
+    <select id="queryOrdSizeInfo4Row" parameterClass="map" resultClass="dto" remapResults="true">
+        select color,in_length,country ,MAX(SEQ_NO)From ord_size_info
+        where fk_odl_seq=#seq_no# 
+        GROUP BY color,in_length,country
+        ORDER BY MAX(SEQ_NO)
+    </select>
+    <select id="querySizeListBySeqNo" parameterClass="map" resultClass="dto" remapResults="true">
+        select seq_no,color,in_length,country,waist,num From ord_size_info 
+        where fk_odl_seq=#seq_no# 
+       
+    </select>
+
+	<select id="queryOrdSizeSubInfo" parameterClass="dto" resultClass="dto">
+         select waist from ord_size_info 
+         where fk_odl_seq =#seq_no# group by waist 
+         order by waist asc
+    </select>
+    
+    <update id="deleteOrdSizeInfoByFKSeq" parameterClass="dto">
+    	update ord_size_info set statue=#statue# 
+    	where fk_odl_seq = #seq_no#	 and statue='0'  
+    </update>
+</sqlMap>

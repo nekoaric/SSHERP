@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<sqlMap>
+    <typeAlias alias="dto"
+               type="org.eredlab.g4.ccl.datastructure.impl.BaseDto"/>
+
+    <select id="queryNumInfoFromProdBasInfo" parameterClass="map" resultClass="dto">
+        select product_id,case when real_num is null then 0 else real_num end as real_num,
+        case when cut_num is null then 0 else cut_num end as cut_num
+        from prod_bas_info
+        <dynamic prepend="WHERE">
+            <isNotEmpty prepend="AND" property="product_id">
+                product_id = #product_id#
+            </isNotEmpty>
+        </dynamic>
+    </select>
+
+    <select id="queryEpcProdInfoCountByTid" parameterClass="map" resultClass="Integer" remapResults="true">
+        select count(tid) from epc_prod_list where tid = #tid# and state = '0'
+    </select>
+
+    <select id="queryEpcProdInfoByTid" parameterClass="map" resultClass="dto" remapResults="true">
+        select epc,tid,product_id from epc_prod_list where tid = #tid# and state = '0'
+    </select>
+
+    <!-- Prod_Bas_Ino 表基本信息查询  -->
+    <select id="queryProdBasInfo" parameterClass="map" resultClass="dto" remapResults="true">
+        select
+        b.product_id,b.color,b.prod_ord_seq,b.in_length,b.waist,b.print,b.wash,
+        b.ord_num,b.ins_num,b.real_num,b.remark,b.cut_num,b.state
+        from prod_bas_info b
+        <dynamic prepend="WHERE">
+            <isNotEmpty prepend="AND" property="product_id">
+                b.product_id = #product_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="prod_ord_seq">
+                b.prod_ord_seq = #prod_ord_seq#
+            </isNotEmpty>
+             <isNotEmpty prepend="AND" property="state">
+                b.state = #state#
+            </isNotEmpty>
+        </dynamic>
+    </select>
+
+    <select id="queryProdAndEpcInfo" parameterClass="map" resultClass="dto" remapResults="true">
+        SELECT a.epc, b.product_id,b.prod_ord_seq,b.color,b.in_length,b.waist,b.print,
+        b.wash,b.ord_num,b.ins_num,b.real_num,b.remark,b.state
+        FROM epc_prod_list a right join prod_bas_info b on a.product_id=b.product_id
+        <dynamic prepend="WHERE">
+            <isNotEmpty prepend="AND" property="product_id">
+                a.product_id = #product_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="epc">
+                a.epc = #epc#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="state">
+                a.state = '0'
+            </isNotEmpty>
+        </dynamic>
+    </select>
+
+    <select id="queryProdBasDeiltaInfo" parameterClass="map" resultClass="dto">
+        select a.tid,a.epc,a.product_id,a.opr_id,a.opr_date,b.user_name ,case a.state when '0' then '绑定' else '解绑' end as state
+        from epc_prod_list a
+        inner join sys_user_info b on a. opr_id=b.user_id
+        <dynamic prepend="WHERE">
+            <isNotEmpty prepend="AND" property="product_id">
+                a.product_id = #product_id#
+            </isNotEmpty>
+        </dynamic>
+    </select>
+
+    <select id="queryProdAndEpcCount" parameterClass="map"
+            resultClass="java.lang.Integer">
+        SELECT count(*) FROM epc_prod_list
+        <dynamic prepend="WHERE">
+            <isNotEmpty prepend="AND" property="product_id">
+                product_id = #product_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="epc">
+                epc = #epc#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="state">
+                state = '0'
+            </isNotEmpty>
+        </dynamic>
+    </select>
+    
+    <select id="queryBachProdAndEpcCount" parameterClass="map" resultClass="java.lang.Integer">
+    	select count(*) from epc_prod_list
+    	<dynamic prepend="where">
+    		<isNotEmpty prepend="AND" property="product_id">
+    			product_id = #product_id#
+    		</isNotEmpty>
+    		<isNotEmpty prepend="AND" property ="epcCodes">
+    			epc in ($epcCodes$)
+    		</isNotEmpty>
+    		<isNotEmpty prepend="AND" property="state">
+    			state='0'
+    		</isNotEmpty>
+    	</dynamic>
+    </select>
+
+    <!-- RFID 产品查询分页 -->
+    <select id="queryProdBasInfoForPageCount" parameterClass="map"
+            resultClass="java.lang.Integer">
+        SELECT count(*)
+        FROM prod_bas_info
+        <dynamic prepend="WHERE">
+            <isNotEmpty prepend="AND" property="product_id">
+                product_id = #product_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="prod_ord_seq">
+                prod_ord_seq = #prod_ord_seq#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="state">
+                state = '0'
+            </isNotEmpty>
+        </dynamic>
+    </select>
+
+    <select id="queryProdDetailInfoForPageCount" parameterClass="map"
+            resultClass="java.lang.Integer">
+        SELECT count(*)
+        FROM epc_prod_list
+        <dynamic prepend="WHERE">
+            <isNotEmpty prepend="AND" property="product_id">
+                product_id = #product_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="state">
+                state = '0'
+            </isNotEmpty>
+        </dynamic>
+    </select>
+
+    <!--  RFID	标签产品对应表登记 -->
+    <insert id="insertEpcProdListInfo" parameterClass="dto">
+        insert into epc_prod_list
+        (seq_no,epc,tid,product_id,opr_id,opr_date,state)
+        values
+        (seq_epc_prod_list_seq_no.nextval,#epc#,#tid#,#product_id#,#opr_id#,#opr_date#,#state#)
+    </insert>
+    <!--  RFID	标签流程更改-->
+    <update id="updateEpcFlowInfo" parameterClass="dto">
+        update epc_book_list
+        set flow=#flow# where epc=#epc#
+    </update>
+
+    <!--  RFID电子标签	解绑 -->
+    <update id="removeEpcFlowInfo" parameterClass="dto">
+        update epc_prod_list set state=#state# where epc=#epc#
+    </update>
+
+    <update id="removeEpcInfo" parameterClass="dto">
+        update epc_book_list set flow=#flow#,state=#state# where epc=#epc#
+    </update>
+
+    <update id="updateProdCutNum" parameterClass="dto">
+        update prod_bas_info set cut_num=#cut_num# where product_id=#product_id#
+    </update>
+
+    <update id="updateProdCutNum4EpcDayList" parameterClass="dto">
+        update prod_bas_info set cut_num=cut_num+1 where product_id=#product_id#
+    </update>
+
+    <select id="queryProdDetailInfo4Prod" parameterClass="dto" resultClass="dto" remapResults="true">
+       select a.product_id,a.nature,max(a.last_trm_no) as last_trm_no,max(b.ord_seq_no) as ord_seq_no,
+       max(b.prod_ord_seq) as prod_ord_seq,max(b.delivery_date) as deli_date,max(b.style_no) as style_no,
+       max(b.article) as article,max(b.color) as color, max(b.in_length) as in_length,max(b.waist) as waist,
+       max(b.country) as country,max(b.cust_name) as cust_name,c.belong_grp,
+       max(c.belong_grp_name) as belong_grp_name,count(*) as amount
+       from epc_prod_list a left join
+       (select a.ord_seq_no,a.prod_ord_seq,a.product_id,a.country,c.style_no,a.color,a.in_length,a.waist,
+           a.cloth_size_seq_no,c.delivery_date,c.article,c.cust_id,b.cust_name from prod_bas_info a inner join
+           (select a.*,b.cust_name from ord_bas_info a left join bas_cust_list b on a.cust_id = b.cust_id) b
+           on a.ord_seq_no = b.order_id
+           left join prod_ord_info c on a.prod_ord_seq = c.prod_ord_seq
+           ) b on a.product_id = b.product_id
+       left join (select a.grp_id,a.trm_no,a.belong_grp,b.name as belong_grp_name from dev_trm_info a
+           left join sys_grps_info b on a.belong_grp = b.grp_id) c on a.last_trm_no = c.trm_no
+        <dynamic prepend="where">
+        	<isNotEmpty prepend="and" property="ismyorder">
+        		b.prod_ord_seq in (select prod_ord_seq from order_operator where account=#account#)
+        	</isNotEmpty>
+        	<isNotEmpty prepend="and" property="orderstatus">
+        		b.prod_ord_seq in (select prod_ord_seq from prod_ord_info where prodstatus=#orderstatus#)
+        	</isNotEmpty>
+            <isNotEmpty prepend="and" property="belong_grp_id">
+                c.belong_grp = #belong_grp_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="cust_id">
+                b.cust_id = #cust_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="ord_seq_no">
+                b.ord_seq_no = #ord_seq_no#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="prod_ord_seq">
+                b.prod_ord_seq = #prod_ord_seq#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="style_no">
+                b.style_no = #style_no#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="country">
+                b.country = #country#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="color">
+                b.color = #color#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="cloth_size_seq_no">
+                b.cloth_size_seq_no = #cloth_size_seq_no#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="epc">
+                b.product_id in (select product_id from epc_prod_list where epc = #epc#)
+            </isNotEmpty>
+        </dynamic>
+        group by a.product_id,a.nature,c.belong_grp
+        order by nature,country,color,in_length
+    </select>
+
+    <select id="queryProdDetailInfo4ProdOrd" parameterClass="dto" resultClass="dto" remapResults="true">
+        select a.nature,b.prod_ord_seq,max(a.last_trm_no) as last_trm_no,max(b.ord_seq_no) as ord_seq_no,
+        max(b.deli_date) as deli_date,max(b.style_no) as style_no,max(b.article) as article,max(b.cust_name) as cust_name,
+        c.belong_grp,max(c.belong_grp_name) as belong_grp_name,count(*) as amount
+        from epc_prod_list a left join
+        (select a.ord_seq_no,a.prod_ord_seq,a.product_id,a.country,a.style_no,a.color,a.in_length,a.waist,
+        b.deli_date,d.article,b.cust_id,b.cust_name from prod_bas_info a inner join
+        (select a.*,b.cust_name from ord_bas_info a left join bas_cust_list b on a.cust_id = b.cust_id) b
+        on a.ord_seq_no = b.order_id
+        left join prod_ord_info d on d.ord_seq_no = b.order_id
+        ) b on a.product_id = b.product_id
+        left join (select a.grp_id,a.trm_no,a.belong_grp,b.name as belong_grp_name from dev_trm_info a
+        left join sys_grps_info b on a.belong_grp = b.grp_id) c on a.last_trm_no = c.trm_no
+        <dynamic prepend="where">
+            <isNotEmpty prepend="and" property="belong_grp_id">
+                c.belong_grp = #belong_grp_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="cust_id">
+                b.cust_id = #cust_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="ord_seq_no">
+                b.ord_seq_no = #ord_seq_no#
+            </isNotEmpty>
+        </dynamic>
+        group by b.prod_ord_seq,a.nature,c.belong_grp
+    </select>
+
+    <select id="queryProdDetailInfo4Ord" parameterClass="dto" resultClass="dto" remapResults="true">
+        select a.nature,b.ord_seq_no,max(a.last_trm_no) as last_trm_no,max(b.deli_date) as deli_date,
+        max(b.style_no) as style_no,max(b.article) as article,max(b.cust_name) as cust_name,
+        c.belong_grp,max(c.belong_grp_name) as belong_grp_name,count(*) as amount
+        from epc_prod_list a left join
+        (select a.ord_seq_no,a.prod_ord_seq,a.product_id,a.country,a.style_no,a.color,a.in_length,a.waist,
+        b.deli_date,d.article,b.cust_id,b.cust_name from prod_bas_info a inner join
+        (select a.*,b.cust_name from ord_bas_info a left join bas_cust_list b on a.cust_id = b.cust_id) b
+        on a.ord_seq_no = b.order_id
+        left join prod_ord_info d on d.ord_seq_no = b.order_id
+        ) b on a.product_id = b.product_id
+        left join (select a.grp_id,a.trm_no,a.belong_grp,b.name as belong_grp_name from dev_trm_info a
+        left join sys_grps_info b on a.belong_grp = b.grp_id) c on a.last_trm_no = c.trm_no
+        <dynamic prepend="where">
+            <isNotEmpty prepend="and" property="belong_grp_id">
+                c.belong_grp = #belong_grp_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="cust_id">
+                b.cust_id = #cust_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="ord_seq_no">
+                b.ord_seq_no = #ord_seq_no#
+            </isNotEmpty>
+        </dynamic>
+        group by b.ord_seq_no,a.nature,c.belong_grp
+    </select>
+
+</sqlMap>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMapConfig PUBLIC "-//iBATIS.com//DTD SQL Map Config 2.0//EN"
+        "http://www.ibatis.com/dtd/sql-map-config-2.dtd">
+<!-- 权限参考模型-->
+<sqlMapConfig>
+    <!--<sqlMap resource="org/eredlab/g4/arm/sqlmap/Organization.xml"/>-->
+    <sqlMap resource="org/eredlab/g4/arm/sqlmap/Resource.xml"/>
+    <!--<sqlMap resource="org/eredlab/g4/arm/sqlmap/User.xml"/>-->
+    <sqlMap resource="org/eredlab/g4/arm/sqlmap/Exception.xml"/>
+    <sqlMap resource="org/eredlab/g4/arm/sqlmap/Param.xml"/>
+    <!--<sqlMap resource="org/eredlab/g4/arm/sqlmap/IdGenerator.xml"/>-->
+    <sqlMap resource="org/eredlab/g4/arm/sqlmap/Monitor.xml"/>
+    <sqlMap resource="org/eredlab/g4/arm/sqlmap/Duty.xml"/>
+    <sqlMap resource="org/eredlab/g4/arm/sqlmap/Message.xml"/>
+    <sqlMap resource="org/eredlab/g4/arm/sqlmap/Part.xml"/>
+
+    <!-- 单位客户管理 -->
+    <sqlMap resource="com/cnnct/sys/sqlmap/SysGrps.xml"/>
+    <sqlMap resource="com/cnnct/sys/sqlmap/Login.xml"/>
+    <sqlMap resource="com/cnnct/sys/sqlmap/ArmTagSupport.xml"/>
+    <sqlMap resource="com/cnnct/sys/sqlmap/DataPerm.xml"/>
+    <sqlMap resource="com/cnnct/sys/sqlmap/Role.xml"/>
+
+    <sqlMap resource="com/cnnct/sys/sqlmap/SysDeptInfo.xml"/>
+
+    <sqlMap resource="com/cnnct/sys/sqlmap/SysUserInfo.xml"/>
+    <sqlMap resource="com/cnnct/sys/sqlmap/ManageUserInfo.xml"/>
+    <!-- 员工班组设置 -->
+	<sqlMap resource="com/cnnct/sys/sqlmap/ManageTeam.xml"/>
+</sqlMapConfig>

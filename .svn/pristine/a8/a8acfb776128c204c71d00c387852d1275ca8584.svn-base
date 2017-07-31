@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 全局数据访问模型 -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="
+	http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+	http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-2.5.xsd
+	http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-2.5.xsd">
+	
+	<!-- 加载jdbc属性文件 -->
+	<bean id="propertyConfigurer" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="locations">
+			<list>
+				<value>jdbc.properties</value>
+			</list>
+		</property>
+	</bean>
+    
+    <!-- 数据源配置，基于Spring DataSource（开发用） -->
+    <bean id="dataSourceG4" class="com.alibaba.druid.pool.DruidDataSource">
+        <property name="driverClassName" value="${g4.jdbc.driverClassName}" />
+        <property name="url" value="${g4.jdbc.url}" />
+        <property name="username" value="${g4.jdbc.username}" />
+        <property name="password" value="${g4.jdbc.password}" />
+        <!-- 配置监控统计拦截的filters -->
+        <property name="filters" value="stat" />
+        <!-- 配置初始化大小、最小、最大 -->
+        <property name="initialSize" value="1" />
+        <property name="minIdle" value="1" />
+        <property name="maxActive" value="20" />
+        <!-- 配置获取连接等待超时的时间 -->
+        <property name="maxWait" value="60000" />
+
+        <!-- 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位是毫秒 -->
+        <property name="timeBetweenEvictionRunsMillis" value="60000" />
+
+        <!-- 配置一个连接在池中最小生存的时间，单位是毫秒 -->
+        <property name="minEvictableIdleTimeMillis" value="300000" />
+        <!-- 打开PSCache，并且指定每个连接上PSCache的大小 -->
+        <!--<property name="poolPreparedStatements" value="true" />-->
+        <!--<property name="maxOpenPreparedStatements" value="100" />-->
+        <!--<property name="maxPoolPreparedStatementPerConnectionSize" value="20" />-->
+</bean>
+		   <!-- 对接用数据源 -->  
+    <bean id="dataSourceMSSQL2" class="com.alibaba.druid.pool.DruidDataSource" >  
+        <!-- 基本属性 url、user、password -->  
+        <property name="driverClassName" value="com.microsoft.sqlserver.jdbc.SQLServerDriver" />  
+        <property name="url" value="jdbc:sqlserver://10.10.6.153:1433;DatabaseName=hsdb;" />
+        <property name="username" value="sa" />  
+        <property name="password" value="jdurfid" />  
+  
+        <!-- 配置初始化大小、最小、最大 -->  
+        <property name="initialSize" value="1" />  
+        <property name="minIdle" value="1" />  
+        <property name="maxActive" value="20" />  
+  
+        <!-- 配置获取连接等待超时的时间 -->  
+        <property name="maxWait" value="60000" />  
+  
+        <!-- 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位是毫秒 -->  
+        <property name="timeBetweenEvictionRunsMillis" value="60000" />  
+  
+        <!-- 配置一个连接在池中最小生存的时间，单位是毫秒 -->  
+        <property name="minEvictableIdleTimeMillis" value="300000" />  
+  
+        <property name="validationQuery" value="SELECT 'x'" />  
+        <property name="testWhileIdle" value="true" />  
+        <property name="testOnBorrow" value="false" />  
+        <property name="testOnReturn" value="false" />  
+  
+        <!-- 打开PSCache，并且指定每个连接上PSCache的大小 -->  
+        <property name="poolPreparedStatements" value="true" />  
+        <property name="maxPoolPreparedStatementPerConnectionSize"  
+            value="20" />  
+  
+        <!-- 配置监控统计拦截的filters -->  
+        <property name="filters" value="stat" />  
+    </bean>
+<!-- 数据源配置，基于Spring DataSource（多数据源_MSSQL） -->
+    <bean id="dataSourceMSSQL" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+        <property name="driverClassName" value="net.sourceforge.jtds.jdbc.Driver" />
+        <property name="url" value="jdbc:jtds:sqlserver://172.16.200.174:1433;skep_das" />
+        <property name="username" value="sa" />
+        <property name="password" value="sacnnct174" />
+    </bean>
+    
+    <!-- 针对不同的数据源，该配置需要更改，如c3p0,weblogic下连接池，websphere下连接池 -->
+    <bean id="nativeJdbcExtractor" class="org.springframework.jdbc.support.nativejdbc.CommonsDbcpNativeJdbcExtractor" lazy-init="true" />
+    
+    <bean id="oracleLobHandler" class="org.springframework.jdbc.support.lob.OracleLobHandler" lazy-init="true">
+        <property name="nativeJdbcExtractor">
+            <ref local="nativeJdbcExtractor" />
+        </property>   
+    </bean>
+    
+	<!-- 配置sqlmapClientFactory -->
+	<bean id="sqlMapClientG4" class="org.springframework.orm.ibatis.SqlMapClientFactoryBean">
+		<property name="configLocations">
+			<list>
+				<value>config/sys/sys.sqlmap.xml</value>
+				<value>config/rfid/rfid.sqlmap.xml</value>
+				<value>config/quartz/quartz.sqlmap.xml</value>
+				<value>config/api/api.sqlmap.xml</value>
+				<value>config/may/may.sqlmap.xml</value>
+			</list>
+		</property>
+		<property name="dataSource" ref="dataSourceG4" />
+		<property name="lobHandler" ref="oracleLobHandler" />
+	</bean>
+
+<!-- 配置sqlmapClientFactory -->
+	<bean id="sqlMapClientMSSQL" class="org.springframework.orm.ibatis.SqlMapClientFactoryBean">
+		<property name="configLocations">
+			<list>
+			<!-- sql server的sql文件 -->
+				<value>config/rfid/sqlserver.sqlmap.xml</value>
+			</list>
+		</property>
+		<property name="dataSource" ref="dataSourceMSSQL2" />
+	</bean>
+
+	<!-- 配置G4数据读取器  -->
+	<bean id="g4Reader" class="org.eredlab.g4.bmf.base.IReaderImpl">
+		<property name="sqlMapClient" ref="sqlMapClientG4" />
+	</bean>
+	<!-- 配置mssql数据读取器  15.08.16-->
+	<bean id="mSSReader" class="org.eredlab.g4.bmf.base.IReaderImpl4MSSQL">
+		<property name="sqlMapClient" ref="sqlMapClientMSSQL" />
+	</bean>
+	<!-- 配置G4Dao  -->
+	<bean id="g4Dao" class="org.eredlab.g4.bmf.base.IDaoImpl">
+		<property name="sqlMapClient" ref="sqlMapClientG4" />
+	</bean>
+	<!-- 配置sqlserverDao  -->
+	<bean id="sDao" class="org.eredlab.g4.bmf.base.IDaoSImpl">
+		<property name="sqlMapClient" ref="sqlMapClientMSSQL" />
+	</bean>
+</beans>

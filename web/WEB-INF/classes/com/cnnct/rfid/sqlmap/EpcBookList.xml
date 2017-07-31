@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<sqlMap>
+	<typeAlias alias="dto"
+		type="org.eredlab.g4.ccl.datastructure.impl.BaseDto" />
+	<!-- RFID	基本信息查询  -->
+	<select id="queryEpcBookListInfo" parameterClass="map" resultClass="dto" remapResults="true">
+	    select a.seq_no,a.tid,a.epc,a.flow,a.opr_id,a.opr_date,case a.state when '0' then '使用中' else '空闲' end as state,b.user_name from EPC_BOOK_LIST a inner join sys_user_info b on a.opr_id=b.user_id
+	    <dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="seq_no">
+				seq_no = #seq_no#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="epc">
+				epc = #epc#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="opr_id">
+				opr_id = #opr_id#
+			</isNotEmpty>
+	    </dynamic>
+	</select>
+
+	<!-- RFID	电子标签最大编号查询  -->
+	<select id="queryMaxEpcBookListInfo" parameterClass="map" resultClass="Integer">
+	    select max(cast(seq_no as int)) as seq_no from EPC_BOOK_LIST
+	</select>
+
+    <select id="queryEpcBookCountByTid" parameterClass="dto" resultClass="Integer">
+        select count(*) from epc_book_list where tid = #tid#
+    </select>
+
+	<!--  RFID	电子标登记 -->
+	<insert id="insertEpcBookListInfo" parameterClass="dto">
+	    insert into epc_book_list
+	    (seq_no,tid,epc,flow,opr_id,opr_date,state)
+        values
+        (seq_epc_book_list_seq_no.nextval,#tid#,#epc#,#flow#,#opr_id#,#opr_date#,#state#)
+	</insert>
+
+	<delete id="deleteEpcInfo" parameterClass="map" >
+		DELETE FROM epc_book_list WHERE tid = #tid#
+	</delete>
+
+    <update id="updateEpcInfo" parameterClass="dto">
+        UPDATE epc_book_list
+        <dynamic prepend="set">
+            <isNotEmpty prepend="," property="state">
+                state = #state#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="epc">
+                epc = #epc#
+            </isNotEmpty>
+        </dynamic>
+        where tid=#tid#
+    </update>
+</sqlMap>

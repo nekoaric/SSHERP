@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<!-- 角色管理与授权手工映射SQL语句 -->
+<sqlMap>
+    <typeAlias alias="dto" type="org.eredlab.g4.ccl.datastructure.impl.BaseDto"/>
+
+    <select id="queryDeptTree4RolePerm" parameterClass="map" resultClass="dto">
+        SELECT  a.dept_id as id, a.dept_name as text, a.parent_id,a.leaf,a.sort_no,a.indep_flag,
+        case when b.dept_id is null then '0' else '1' end as num
+        FROM sys_dept_info a  left join
+        (select dept_id from sys_role_dataauth where role_id =#role_id# and type=#type#)  b
+        on a.dept_id = b.dept_id where dept_state = '0'
+        <dynamic>
+            <isNotEmpty prepend="AND" property="dept_id">
+                a.dept_id = #dept_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="parent_id">
+                a.parent_id = #parent_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="dept_name">
+                a.dept_name like '%$dept_name$%'
+            </isNotEmpty>
+        </dynamic>
+        order by a.dept_id
+    </select>
+
+    <select id="queryUserInfo4RoleGrant" parameterClass="map" resultClass="dto" remapResults="true">
+        select a.account,a.per_no,a.user_name,a.dept_id,a.id_crd,a.mbl_no,b.role_id,b.authorize_id,
+        fn_split_value(a.deptnames,',',2) as deptname1,fn_split_value(a.deptnames,',',3) as deptname2,
+        fn_split_value(a.deptnames,',',4) as deptname3 from
+        (select a.*,getdeptname(a.dept_id) as deptnames from sys_user_info a
+        left join sys_dept_info b on a.dept_id = b.dept_id
+        where a.grp_id =#grp_id# and a.user_type ='0' and a.state!='1' and b.custom_id is null) a
+        left join (select * from sys_role_dataauth where role_id =#role_id# and type =#type#) b
+        on a.account = b.per_id
+        <dynamic prepend="WHERE">
+            <isNotEmpty prepend="and" property="per_no">
+                a.per_no=#per_no#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="user_name">
+                a.user_name like '%$user_name$%'
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="mblno">
+                a.mbl_no=#mblno#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="dept_id">
+                a.dept_id like '$dept_id$%'
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="id_crd">
+                a.id_crd = '$id_crd$'
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="crdNoIsNull">
+                a.crd_no is not null
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="userState">
+                a.state in $userState$
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="selectModel">
+                b.role_id is not null
+            </isNotEmpty>
+            <isEmpty prepend="and" property="selectModel">
+                b.role_id is null
+            </isEmpty>
+        </dynamic>
+        order by a.dept_id
+    </select>
+
+    <select id="queryUserInfo4RoleGrantPageCount" parameterClass="map" resultClass="java.lang.Integer">
+        select count(*) from
+        (select a.*,getdeptname(a.dept_id) as dept_names from sys_user_info a  left join sys_dept_info b on a.dept_id = b.dept_id
+        where a.grp_id =#grp_id# and a.state!='1' and b.customid is null) a
+        left join (select * from sys_role_dataauth where role_id =#role_id# and type =#type#) b
+        on a.account = b.per_id
+        <dynamic prepend="WHERE">
+            <isNotEmpty prepend="and" property="per_no">
+                a.per_no=#per_no#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="user_name">
+                a.user_name=#user_name#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="mbl_no">
+                a.mbl_no=#mbl_no#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="dept_id">
+                a.dept_id like '$dept_id$%'
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="id_crd">
+                a.id_crd = '$id_crd$'
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="crdNoIsNull">
+                a.crd_no is not null
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="userState">
+                a.state in $userState$
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="selectModel">
+                b.role_id is not null
+            </isNotEmpty>
+            <isEmpty prepend="and" property="selectModel">
+                b.role_id is null
+            </isEmpty>
+        </dynamic>
+    </select>
+
+    <!-- 查询授权的客户区域信息 -->
+    <select id="queryCustCountryInfo4RoleGrant" parameterClass="map" resultClass="dto">
+            select a.country,a.country as text,'area'||a.country as id,MAX (b.role_id) as role_id,
+            case when MAX (b.role_id) is null then '0' else '1' end as checked
+            FROM bas_cust_list a left join
+            (select role_id,other,type from sys_role_dataauth where role_id =#role_id# and type = #type#)b
+            on a.cust_id = b.other
+            <dynamic prepend="WHERE">
+                <isNotEmpty prepend="AND" property="grp_id">
+                    grp_id = #grp_id#
+                </isNotEmpty>
+            </dynamic>
+            group by a.country
+    </select>
+
+
+    <!-- 查询授权的客户信息 -->
+    <select id="queryCustInfo4RoleGrant" parameterClass="map" resultClass="dto">
+        SELECT a.cust_id,a.cust_id as id,a.cust_name,a.cust_name as text,a.country,b.role_id,
+        case when b.role_id is null then '0' else '1' end as checked
+        FROM bas_cust_list a left join
+        (select role_id,other,type from sys_role_dataauth where role_id =#role_id# and type = #type#)b
+        on a.cust_id = b.other
+        <dynamic prepend="WHERE">
+            <isNotEmpty prepend="AND" property="grp_id">
+                a.grp_id = #grp_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="country">
+                a.country = #country#
+            </isNotEmpty>
+            <isEmpty prepend="" property="country">
+            	<isNotEmpty prepend="AND" property="isArea">
+            		a.country is null
+            	</isNotEmpty>
+            </isEmpty>
+        </dynamic>
+        order by cust_id
+    </select>
+
+
+    <select id="getCustInfo4DataPerm" parameterClass="dto" resultClass="dto">
+        select wmsys.wm_concat(b.cust_id) as cust_id_str ,wmsys.wm_concat(b.cust_name) as cust_name_str
+        from sys_role_dataauth a
+        left join bas_cust_list b on a.other = b.cust_id
+        where type =#type# and role_id = #role_id#
+    </select>
+
+    <!-- 查询授权的生产通知单信息 -->
+    <select id="getProdOrdInfo4DataPerm" parameterClass="map" resultClass="dto">
+        SELECT a.prod_ord_seq,a.style_no,a.order_id,a.cust_name,b.role_id,
+        case when b.role_id is null then '0' else '1' end as checked
+        FROM (select a.prod_ord_seq,a.style_no,a.ord_seq_no as order_id,a.cust_id,b.cust_name from prod_ord_info a
+        left join bas_cust_list b on a.cust_id = b.cust_id) a left join
+        (select role_id,other,type from sys_role_dataauth where role_id =#role_id# and type = #type#)b
+        on a.prod_ord_seq = b.other
+        <dynamic prepend="where">
+            <isNotEmpty prepend="and" property="cust_id_str">
+                a.cust_id in (#cust_id_str#)
+            </isNotEmpty>
+        </dynamic>
+        order by prod_ord_seq
+    </select>
+
+    <!-- 插入一条角色授权记录 -->
+    <insert id="saveSysRoleDataAuth" parameterClass="dto">
+        insert into sys_role_dataauth
+        (role_id,type,dept_id,per_id,other,authorize_id)
+        VALUES (#role_id#, #type#, #dept_id#,#per_id#,#other#,seq_sys_role_dataauth_id.nextval)
+    </insert>
+
+    <!-- 删除角色授权表(部门等)  -->
+    <delete id="deleteSysRoleDataAuth4RoleGrant" parameterClass="map" >
+        DELETE FROM sys_role_dataauth WHERE type in ($type$) and role_id = #role_id#
+    </delete>
+
+    <!-- 删除角色授权表(人员)  -->
+    <delete id="deleteSysRoleDataAuth4DeleteUser" parameterClass="map" >
+        DELETE FROM sys_role_dataauth WHERE type = #type# and role_id = #role_id# and per_id = #per_id#
+    </delete>
+
+    <!-- 更新分管部门信息 -->
+    <update id="updateUserManageDeptId" parameterClass="dto">
+        UPDATE sys_user_info set managedept_id = #managedept_id#
+        WHERE grp_id =#grp_id# and account = #account#
+    </update>
+
+    <!-- 查询分管部门信息-->
+    <select id="queryManageDeptInfo" parameterClass="map" resultClass="dto">
+        SELECT  a.dept_id as id, a.dept_name as text, a.parent_id,a.leaf,a.sortno,a.indepd_cwa_ctrl,
+        case when b.column_value is null then '0' else '1' end as num
+        FROM sys_dept_info a  left join
+        table(fn_split((select managedept_id from sys_user_info
+        where grp_id =#grp_id# and account =#account#),',')) b on a.dept_id = b.column_value
+        <dynamic prepend="WHERE">
+            <isNotEmpty prepend="AND" property="dept_id">
+                a.dept_id = #dept_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="parent_id">
+                a.parent_id = #parent_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="dept_name">
+                a.dept_name like '%$dept_name$%'
+            </isNotEmpty>
+        </dynamic>
+        order by a.dept_id
+    </select>
+
+    <!--获取默认数据权限的角色编号-->
+    <select id="getSysRoleInfoByNotes" parameterClass="map" resultClass="java.lang.String">
+        select role_id from sys_role_info where notes =#notes#
+    </select>
+
+    <!--查询用户授权部门树-->
+    <select id="queryDeptTree4UserPerm" parameterClass="map" resultClass="dto">
+        SELECT  a.dept_id as id, a.dept_name as text, a.parent_id,a.leaf,a.sortno,a.indepd_cwa_ctrl,
+        case when b.dept_id is null then '0' else '1' end as num
+        FROM sys_dept_info a left join
+        (select dept_id from sys_user_dataauth where user_id =#user_id# and type=#type#)  b
+        on a.dept_id = b.dept_id
+        <dynamic prepend="WHERE">
+            <isNotEmpty prepend="AND" property="dept_id">
+                a.dept_id = #dept_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="parent_id">
+                a.parent_id = #parent_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="dept_name">
+                a.dept_name like '%$dept_name$%'
+            </isNotEmpty>
+        </dynamic>
+        order by a.dept_id
+    </select>
+
+    <!--查询用户授权人员信息-->
+    <select id="queryUserInfo4UserGrant" parameterClass="map" resultClass="dto" remapResults="true">
+        select a.account,a.per_no,a.user_name,a.dept_id,a.id_crd,a.mbl_no,b.user_id,b.authorize_id,
+        fn_split_value(a.deptnames,',',2) as deptname1,fn_split_value(a.deptnames,',',3) as deptname2,
+        fn_split_value(a.deptnames,',',4) as deptname3 from
+        (select a.*,getdeptname(a.dept_id) as deptnames from sys_user_info a
+        left join sys_dept_info b on a.dept_id = b.dept_id
+        where a.grp_id =#grp_id# and a.user_type ='0' and a.state!='1' and b.customid is null) a
+        left join (select * from sys_user_dataauth where user_id =#user_id# and type =#type#) b
+        on a.account = b.per_id
+        <dynamic prepend="WHERE">
+            <isNotEmpty prepend="and" property="perno">
+                a.per_no=#perno#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="user_name">
+                a.user_name like '%$user_name$%'
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="mblno">
+                a.mbl_no=#mblno#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="dept_id">
+                a.dept_id like '$dept_id$%'
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="id_crd">
+                a.id_crd = '$id_crd$'
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="crdNoIsNull">
+                a.crd_no is not null
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="userState">
+                a.state in $userState$
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="selectModel">
+                b.user_id is not null
+            </isNotEmpty>
+            <isEmpty prepend="and" property="selectModel">
+                b.user_id is null
+            </isEmpty>
+        </dynamic>
+        order by a.dept_id
+    </select>
+
+    <!-- 删除用户授权表  -->
+    <delete id="deleteSysUserDataAuth4UserGrant" parameterClass="map" >
+        DELETE FROM sys_user_dataauth WHERE user_id = #user_id#
+    </delete>
+
+    <!-- 删除用户授权表(部门)  -->
+    <delete id="deleteSysUserDataAuth4DeleteDept" parameterClass="map" >
+        DELETE FROM sys_user_dataauth WHERE type in ($type$) and user_id = #user_id#
+    </delete>
+
+    <!-- 删除用户授权表(人员)  -->
+    <delete id="deleteSysUserDataAuth4DeleteUser" parameterClass="map" >
+        DELETE FROM sys_user_dataauth WHERE type = #type# and user_id = #user_id# and per_id = #per_id#
+    </delete>
+
+    <!-- 新增用户授权记录 -->
+    <insert id="saveDataUserGrantItem" parameterClass="dto">
+        merge into sys_user_dataauth a using (select '1' from dual) t  on
+        (user_id=#user_id# and type=#type# and dept_id=#dept_id# and per_id=#per_id# and other=#other#)
+        when not matched then
+        insert
+        (user_id,type,dept_id,per_id,other,authorize_id)
+        values (#user_id#, #type#, #dept_id#,#per_id#,#other#,seq_sys_user_dataauth_id.nextval)
+    </insert>
+
+    <!--权限查询 - 数据权限树展示(部门部分查询)-->
+    <select id="getDeptDataTreeByUserId" parameterClass="map" resultClass="dto">
+        select a.dept_id as id, a.dept_name as text, a.parent_id,a.leaf,a.sortno,a.indepd_cwa_ctrl,
+        case when c.num is null then 0 else c.num end as num
+        FROM sys_dept_info a  $dataPermStr$
+        left join (select count(*) as num,dept_id from sys_user_info where user_type ='0' and state !='1' group by dept_id) c
+        on a.dept_id = c.dept_id where a.parent_id = #parent_id#
+        order by a.dept_id
+    </select>
+
+    <!--权限查询 - 数据权限树展示(人员部分查询)-->
+    <select id="getUserDataTreeByUserId" parameterClass="map" resultClass="dto">
+        select a.account as id ,a.user_name as text,a.dept_id from sys_user_info a $dataPermStr$
+        where a.user_type ='0' and a.state !='1' and a.dept_id = #parent_id# order by a.account
+    </select>
+
+</sqlMap>

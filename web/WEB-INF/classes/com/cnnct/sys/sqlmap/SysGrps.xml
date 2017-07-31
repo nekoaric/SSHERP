@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<!-- 资源模型手工映射SQL语句 -->
+<sqlMap>
+    <typeAlias alias="dto"
+               type="org.eredlab.g4.ccl.datastructure.impl.BaseDto"/>
+
+    <!-- 所属企业查询 -->
+    <select id="queryBelongGrpsInfo" parameterClass="map" resultClass="dto" remapResults="true">
+        SELECT a.grp_id,a.name,a.abbr,a.addr,a.post_code,a.lnk_name,a.lnk_telno,a.ceo_name,a.ceo_telno,
+        a.biz_lcns,a.crp_name,a.crp_telno,a.fax_no,a.email,a.prv_code,a.city_code,a.grp_size,a.apps,a.state,
+        a.opn_date,a.match_dept_id,a.belong_grp_id,b.dept_name as match_dept_name,c.name as belong_grp_name
+        FROM SYS_GRPS_INFO a
+        left join sys_dept_info b on a.match_dept_id = b.dept_id
+        left join sys_grps_info c on a.belong_grp_id = c.grp_id
+        where a.grp_id like '$grp_id$%' and length(a.grp_id)!=10
+        order by grp_id
+    </select>
+
+    <!-- 所属企业查询 -->
+    <select id="belongGrpsTreeInit" parameterClass="map" resultClass="dto">
+        SELECT a.name as text,a.grp_id as id ,a.match_dept_id,b.dept_id,b.dept_name as match_dept_name,
+        (select count(*) from sys_grps_info sgi where instr(sgi.grp_id,a.grp_id)=1) as num
+        from sys_grps_info a inner join sys_dept_info b on a.match_dept_id = b.dept_id
+        where a.belong_grp_id = '$node$'
+        <isNotEmpty prepend="AND" property="order_id">
+            a.grp_id in
+            (select a.grp_id from sys_grps_info a inner join
+				(
+				select sew_fac as grp_id from prod_plan_info a
+				inner join prod_ord_info b on a.prod_ord_seq = b.prod_ord_seq
+				where b.ord_seq_no like '%$order_id$%' and b.state = '0'
+				<isNotEmpty prepend="AND" property="orderstatus">
+	            	b.prodstatus = #orderstatus#
+	            </isNotEmpty>
+	            <isNotEmpty prepend="AND" property="ismyorder">
+	            	b.ord_seq_no in (select ord_seq_no from  order_operator where account =#account#)
+	            </isNotEmpty>
+				union
+				(select bach_fac as grp_id from prod_plan_info a
+				inner join prod_ord_info b on a.prod_ord_seq = b.prod_ord_seq
+				where b.ord_seq_no like '%$order_id$%' and b.state = '0'
+				<isNotEmpty prepend="AND" property="orderstatus">
+	            	b.prodstatus = #orderstatus#
+	            </isNotEmpty>
+	            <isNotEmpty prepend="AND" property="ismyorder">
+	            	b.ord_seq_no in (select ord_seq_no from  order_operator where account =#account#)
+	            </isNotEmpty>)
+				union
+				(select pack_fac as grp_id from prod_plan_info a
+				inner join prod_ord_info b on a.prod_ord_seq = b.prod_ord_seq
+				where b.ord_seq_no like '%$order_id$%' and b.state = '0'
+				<isNotEmpty prepend="AND" property="orderstatus">
+	            	b.prodstatus = #orderstatus#
+	            </isNotEmpty>
+	            <isNotEmpty prepend="AND" property="ismyorder">
+	            	b.ord_seq_no in (select ord_seq_no from  order_operator where account =#account#)
+	            </isNotEmpty>)
+				)
+				b on instr(b.grp_id,a.grp_id)!=0
+            )
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="isOnlyRFID">
+			a.grp_id in
+            (select a.grp_id from sys_grps_info a inner join
+				(
+				select sew_fac as grp_id,b.ord_seq_no as order_id from prod_plan_info a
+				inner join prod_ord_info b on a.prod_ord_seq = b.prod_ord_seq
+				union
+				(select bach_fac as grp_id,b.ord_seq_no as order_id from prod_plan_info a
+				inner join prod_ord_info b on a.prod_ord_seq = b.prod_ord_seq
+				)
+				union
+				(select pack_fac as grp_id,b.ord_seq_no as order_id from prod_plan_info a
+				inner join prod_ord_info b on a.prod_ord_seq = b.prod_ord_seq
+				)
+				)
+				b on instr(b.grp_id,a.grp_id)!=0
+				where b.order_id in (select distinct ord_seq_no 
+					from prod_ord_info where prod_ord_seq in(
+					select prod_ord_seq from epc_day_list)
+				<isNotEmpty prepend="AND" property="orderstatus">
+	            	prodstatus = #orderstatus#
+	            </isNotEmpty>
+	            <isNotEmpty prepend="AND" property="ismyorder">
+	            	ord_seq_no in (select ord_seq_no from  order_operator where account =#account#)
+	            </isNotEmpty>)
+            )
+        </isNotEmpty>
+        order by a.grp_id
+    </select>
+
+    <!-- 所属企业查询 -->
+    <select id="belongGrpsDeptTreeInit" parameterClass="map" resultClass="dto">
+        SELECT a.name as text,a.grp_id as id ,a.match_dept_id,b.dept_id,b.dept_name as match_dept_name,
+        (select count(*) from sys_grps_info sgi where instr(sgi.grp_id,a.grp_id)=1) as num
+        from sys_grps_info a inner join sys_dept_info b on a.match_dept_id = b.dept_id
+        where a.belong_grp_id = '$node$'
+        <isNotEmpty prepend="AND" property="order_id">
+            a.grp_id in
+            (select a.grp_id from sys_grps_info a inner join
+            (
+            select sew_fac as grp_id from prod_plan_info a
+            inner join prod_ord_info b on a.prod_ord_seq = b.prod_ord_seq
+            where b.ord_seq_no like '%$order_id$%' and b.state = '0'
+            <isNotEmpty prepend="AND" property="orderstatus">
+            	b.prodstatus = #orderstatus#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="ismyorder">
+            	b.ord_seq_no in (select ord_seq_no from  order_operator where account =#account#)
+            </isNotEmpty>
+            union
+            (select bach_fac as grp_id from prod_plan_info a
+            inner join prod_ord_info b on a.prod_ord_seq = b.prod_ord_seq
+            where b.ord_seq_no like '%$order_id$%' and b.state = '0'  <isNotEmpty prepend="AND" property="orderstatus">
+            	b.prodstatus = #orderstatus#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="ismyorder">
+            	b.ord_seq_no in (select ord_seq_no from  order_operator where account =#account#)
+            </isNotEmpty>)
+            union
+            (select pack_fac as grp_id from prod_plan_info a
+            inner join prod_ord_info b on a.prod_ord_seq = b.prod_ord_seq
+            where b.ord_seq_no like '%$order_id$%' and b.state = '0' 
+            <isNotEmpty prepend="AND" property="orderstatus">
+            	b.prodstatus = #orderstatus#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="ismyorder">
+            	b.ord_seq_no in (select ord_seq_no from  order_operator where account =#account#)
+            </isNotEmpty>)
+            )
+            b on instr(b.grp_id,a.grp_id)!=0
+            )
+			<!--(select a.belong_grp from dev_trm_info a
+            left join epc_day_list b on b.trm_no= a.trm_no
+            left join prod_ord_info c on c.PROD_ORD_SEQ = b.prod_ord_seq
+            left join ord_bas_info d on c.ord_seq_no=d.order_id
+			where d.order_id like '%$order_id$%' and d.state = '0'
+			)-->
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="isOnlyRFID">
+			a.grp_id in
+            (select a.grp_id from sys_grps_info a inner join
+				(
+				select sew_fac as grp_id,b.ord_seq_no as order_id from prod_plan_info a
+				inner join prod_ord_info b on a.prod_ord_seq = b.prod_ord_seq
+				 <isNotEmpty prepend="AND" property="orderstatus">
+            		b.prodstatus = #orderstatus#
+	            </isNotEmpty>
+	            <isNotEmpty prepend="AND" property="ismyorder">
+	            	b.ord_seq_no in (select ord_seq_no from  order_operator where account =#account#)
+	            </isNotEmpty>
+				union
+				(select bach_fac as grp_id,b.ord_seq_no as order_id from prod_plan_info a
+				inner join prod_ord_info b on a.prod_ord_seq = b.prod_ord_seq
+				 <isNotEmpty prepend="AND" property="orderstatus">
+            		b.prodstatus = #orderstatus#
+	            </isNotEmpty>
+	            <isNotEmpty prepend="AND" property="ismyorder">
+	            	b.ord_seq_no in (select ord_seq_no from  order_operator where account =#account#)
+	            </isNotEmpty>)
+				union
+				(select pack_fac as grp_id,b.ord_seq_no as order_id from prod_plan_info a
+				inner join prod_ord_info b on a.prod_ord_seq = b.prod_ord_seq
+				 <isNotEmpty prepend="AND" property="orderstatus">
+	            	b.prodstatus = #orderstatus#
+	            </isNotEmpty>
+	            <isNotEmpty prepend="AND" property="ismyorder">
+	            	b.ord_seq_no in (select ord_seq_no from  order_operator where account =#account#)
+	            </isNotEmpty>)
+				)
+				b on instr(b.grp_id,a.grp_id)!=0
+				where b.order_id in (select distinct ord_seq_no 
+					from prod_ord_info where prod_ord_seq in(
+					select prod_ord_seq from epc_day_list))
+            )
+        </isNotEmpty>
+        order by a.grp_id
+    </select>
+    <select id="queryMaxBelonggrp_id" parameterClass="map" resultClass="java.lang.String">
+        SELECT max(grp_id) from sys_grps_info
+        where grp_id like '$startId$%' and grp_id !=#startId# and
+        length(grp_id) = length(#startId#)+3
+    </select>
+
+    <update id="updateSysDeptInfoIndepFlag" parameterClass="dto">
+        update sys_dept_info set indep_flag = #indep_flag# where dept_id = #match_dept_id#
+    </update>
+
+    <!-- 关联部门树初始化 -->
+    <select id="matchDeptTreeInit" parameterClass="map" resultClass="dto">
+        SELECT ed.dept_id as id, ed.dept_name as text, ed.parent_id,ed.leaf
+        FROM sys_dept_info ed
+        left join sys_grps_info b on ed.dept_id = b.match_dept_id
+        where ed.custom_id is null and b.grp_id is null
+        <dynamic>
+            <isNotEmpty prepend="AND" property="grp_id">
+				ed.grp_id = '$grp_id$'
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="dept_id">
+				ed.dept_id = #dept_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="parent_id">
+				ed.parent_id = #parent_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="dept_state">
+				ed.dept_state = #dept_state#
+            </isNotEmpty>
+        </dynamic>
+        order by ed.dept_id
+    </select>
+
+    <select id="queryCountGrpName" parameterClass="map" resultClass="java.lang.Integer">
+        SELECT count(*) from sys_grps_info where name = #grp_name# and grp_id != #grp_id#
+    </select>
+
+    <select id="queryUserCountEauser" parameterClass="map" resultClass="java.lang.Integer">
+        select count(*) from sys_user_info where grp_id = #grp_id# and dept_id = #parent_id#
+        and state!='1' and user_type ='2'
+    </select>
+
+    <select id="queryMaxBelongGrpId" parameterClass="map" resultClass="java.lang.String">
+        SELECT max(grp_id) from sys_grps_info where belong_grp_id = '$startId$'
+    </select>
+
+    <!-- 插入一条单位信息 -->
+    <insert id="createSysGrpsDomain" parameterClass="dto">
+        INSERT INTO SYS_GRPS_INFO (
+        grp_id, name,abbr,addr,post_code,lnk_name,lnk_telno,ceo_name,ceo_telno,biz_lcns,crp_name,
+        crp_telno,fax_no,email,opn_opr_id,opn_date,state,grp_size,apps,prv_code,
+        city_code,match_dept_id,belong_grp_id
+        )
+        VALUES (#grp_id#,#name#,#abbr#,#addr#,#post_code#,#lnk_name#,#lnk_telno#,#ceo_name#,#ceo_telno#,
+        #biz_lcns#,#crp_name#,#crp_telno#,#fax_no#,#email#,#opn_opr_id#,#opn_date#,#state#,#grp_size#,
+        #apps#,#prv_code#,#city_code#,#match_dept_id#,#belong_grp_id#
+        )
+    </insert>
+
+    <!-- 删除单位信息 -->
+    <delete id="deleteSysGrpsItem" parameterClass="map">
+        DELETE FROM SYS_GRPS_INFO WHERE grp_id= #grp_id#
+    </delete>
+    <!-- 删除企业中部门信息  -->
+    <delete id="deleteSysGrpsDept" parameterClass="map">
+        delete from sys_dept_info where dept_id like '$dept_id$%'
+    </delete>
+
+    <!-- 统计分厂是否分配分厂管理员 -->
+    <select id="countSysGrpsEauser" parameterClass="map" resultClass="java.lang.Integer">
+        select count(*) from sys_user_info a left join sys_grps_info b on a.dept_id = b.match_dept_id
+        where a.user_type = #user_type# and b.grp_id=#grp_id#
+    </select>
+
+    <!-- 根据主键更新单位信息表 -->
+    <update id="updateSysGrpsItem" parameterClass="dto">
+        UPDATE SYS_GRPS_INFO
+        set abbr= #abbr#, addr = #addr#,post_code= #post_code#,ceo_name = #ceo_name#,
+        ceo_telno= #ceo_telno#,email = #email#, grp_size= #grp_size#,fax_no= #fax_no#
+        <dynamic>
+            <isNotEmpty prepend="," property="name">
+				name= #name#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="lnk_name">
+				lnk_name= #lnk_name#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="lnk_telno">
+				lnk_telno = #lnk_telno#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="pro_date">
+				pro_date = #pro_date#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="biz_lcns">
+				biz_lcns=#biz_lcns#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="crp_name">
+				crp_name = #crp_name#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="crp_telno">
+				crp_telno= #crp_telno#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="prv_code">
+				prv_code= #prv_code#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="city_code">
+				city_code= #city_code#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="borough">
+				borough= #borough#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="street">
+				street= #street#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="apps">
+				apps= #apps#
+            </isNotEmpty>
+        </dynamic>
+        WHERE grp_id= #grp_id#
+    </update>
+
+</sqlMap>

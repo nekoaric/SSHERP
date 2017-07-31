@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts-config PUBLIC "-//Apache Software Foundation//DTD Struts Configuration 1.2//EN" "http://struts.apache.org/dtds/struts-config_1_3.dtd">
+<struts-config>
+	<!-- 配置ActionFormBean -->
+	<form-beans> 
+		<!-- 公共Form -->  
+		<form-bean name="commonActionForm" type="org.eredlab.g4.rif.web.CommonActionForm" />  
+	</form-beans>
+
+	<!-- Action映射 -->
+	<action-mappings type="org.apache.struts.action.ActionMapping"> 
+	
+        <!-- mobile登录 -->
+        <action name="commonActionForm" path="/loginMobile" scope="request"
+            validate="false" parameter="reqCode" type="com.cnnct.loginMode2.web.LoginAction">
+            <forward name="success" path="/loginMode2/login.jsp"></forward>
+            <forward name="factory" path="/loginMode2/selectFac.jsp"></forward>
+            <forward name="ordnum" path="/loginMode2/ordNumOptions.jsp"></forward>
+            <forward name="menu" path="/loginMode2/menuMobile.jsp"></forward>
+        </action>
+        
+        <!-- 菜单界面请求 -->
+        <action name="commonActionForm" path="/menuMobile" scope="request"
+            validate="false" parameter="reqCode" type="com.cnnct.loginMode2.web.MenuMobileAction">
+            <forward name="menu" path="/loginMode2/menuMobile.jsp"></forward>
+            <forward name="ordNum" path="/ordNumMobile.mobile?reqCode=init" ></forward>
+            <forward name="productView" path="/loginMode2/productMobile.jsp"></forward>
+            <forward name="operateView" path="/loginMode2/queryOperateInfo.jsp"></forward>
+            <forward name="qcView" path="/loginMode2/QC/qcPosition.jsp"></forward>
+            <forward name="depotCheckView" path="/loginMode2/depotCheck.jsp"></forward>
+        </action>
+        
+        <!-- 个性化设置 -->
+        <action name="commonActionForm" path="/accountMobile" scope="request"
+            validate="false" parameter="reqCode" type="com.cnnct.loginMode2.web.AccountAction">
+            <forward name="success" path="/loginMode2/selectFac.jsp"></forward>
+            <forward name="myOrdView" path="/loginMode2/selectMyOrder.jsp"></forward>
+        </action>
+        
+        <!-- 数量设置 -->
+        <action name="commonActionForm" path="/ordNumMobile" scope="request"
+            validate="false" parameter="reqCode" type="com.cnnct.loginMode2.web.OrdNumAction">
+            <forward name="success" path="/loginMode2/ordNumOptions.jsp"></forward>
+            <forward name="productView" path="/loginMode2/productMobile.jsp"/>
+        </action>
+        
+        <!-- 反馈信息设置 -->
+        <action name="commonActionForm" path="/orderFeedback" scope="request"
+            validate="false" parameter="reqCode" type="com.cnnct.loginMode2.web.OrderFeedbackAction">
+            <forward name="initView" path="/cnnct/rfid/orderInfoFeedback.jsp"></forward>
+        </action>
+        
+        <!-- 库存管理-->
+        <action name="commonActionForm" path="/depotCheck" scope="request"
+            validate="false" parameter="reqCode" type="com.cnnct.loginMode2.web.depotCheckAction">
+            <forward name="success" path="/loginMode2/depotCheck.jsp"></forward>
+        </action>
+        
+	</action-mappings>
+	
+</struts-config>

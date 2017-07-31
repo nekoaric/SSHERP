@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<weblogic-web-app xmlns="http://www.bea.com/ns/weblogic/90"
+	xmlns:j2ee="http://java.sun.com/xml/ns/j2ee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.bea.com/ns/weblogic/90 http://www.bea.com/ns/weblogic/90/weblogic-web-app.xsd">
+
+	<container-descriptor>
+		<index-directory-enabled>true</index-directory-enabled>
+        <show-archived-real-path-enabled>true</show-archived-real-path-enabled>
+	</container-descriptor>
+<!--	<container-descriptor>-->
+<!--		<show-archived-real-path-enabled>true</show-archived-real-path-enabled>-->
+<!--	</container-descriptor>-->
+
+	<charset-params>
+		<input-charset>
+			<resource-path>/*</resource-path>
+			<java-charset-name>UTF-8</java-charset-name>
+		</input-charset>
+	</charset-params>
+	<context-root>/jdurfid</context-root>
+    
+    <!-- weblogic数据源配置，可注释 -->
+    <resource-description>   
+        <res-ref-name>jndijducard</res-ref-name>   
+        <jndi-name>jndijducard</jndi-name>
+    </resource-description> 
+</weblogic-web-app>

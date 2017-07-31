@@ -1,0 +1,465 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<sqlMap>
+	<typeAlias alias="dto"
+		type="org.eredlab.g4.ccl.datastructure.impl.BaseDto" />
+	<!-- 获取订单信息 -->
+	<select id="queryOrdBasInfo" parameterClass="map" resultClass="dto"
+		remapResults="true">
+		select
+		a.seq_no,a.order_date,a.cust_id,a.brand,a.contract_id,a.order_id,
+		case
+		when b.cust_name is null then a.cust_id else b.cust_name end as
+		cust_name,    
+		c.style_no,a.article,a.classify,a.material,a.order_num,a.percent,a.deli_date,
+		a.merchandier,a.approved,a.assign_num,a.box_ins,a.point_notes,a.style_drawing,
+		a.size_chart,a.accessory_list,a.process_quota,a.process_desc,a.pattern_code,
+		a.verify,a.prod_plan,a.num_detail_list,a.state,c.prodstatus,c.ribbon_color,
+		d.epc_start_date,  e.ord_start_date,f.ins_num,g.ord_num,c.prod_ord_seq
+		from ORD_BAS_INFO a
+		left join bas_cust_list b on
+		b.cust_id=a.cust_id
+		join prod_ord_info c on c.ord_seq_no =
+		a.order_id
+		left join (select min(tr_date) as epc_start_date,prod_ord_seq from epc_day_list group by prod_ord_seq)d on c.prod_ord_seq=d.prod_ord_seq 
+		left join (select min(tr_date) as ord_start_date, order_id from ord_day_list e group by order_id)e on e.order_id = c.ord_seq_no
+        left join (select sum(ins_num) as ins_num,ord_seq_no from prod_bas_info where state = '0' group by ord_seq_no)f on f.ord_seq_no = c.ord_seq_no
+        left join (select sum(ord_num) as ord_num,ord_seq_no from prod_bas_info where state = '0' group by ord_seq_no) g on g.ord_seq_no = c.ord_seq_no
+		where a.state !='1'
+		<isNotEmpty prepend="and" property="area_no">
+		  c.area_no = #area_no#
+		</isNotEmpty>
+		<isNotEmpty prepend="AND" property="report_order">
+<!--	增加完单报告条件的约束	  -->
+            a.order_id in (select data from ord_report_list where type = '4')
+		</isNotEmpty>
+		<isNotEmpty prepend="AND" property="ribbon_color">
+			c.ribbon_color =
+			#ribbon_color#
+		</isNotEmpty>
+		<isNotEmpty prepend="AND" property="style_no">
+			lower(c.style_no) like
+			lower('%$style_no$%')
+		</isNotEmpty>
+		<isNotEmpty prepend="AND" property="ismyorder">
+			a.order_id in (select
+			ord_seq_no from order_operator where account = #account#)
+		</isNotEmpty>
+		<isNotEmpty prepend="AND" property="seq_no">
+			a.seq_no =#seq_no#
+		</isNotEmpty>
+		<isNotEmpty prepend="AND" property="order_id">
+			a.order_id ='$order_id$'
+		</isNotEmpty>
+		<isNotEmpty prepend="AND" property="order_name">
+			a.order_id like
+			'%$order_name$%'
+		</isNotEmpty>
+		<isNotEmpty prepend="AND" property="cust_id">
+			b.cust_id = '$cust_id$'
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="cust_ids"> <!-- 提供多个客户id查询 -->
+            b.cust_id in ($cust_ids$)
+		</isNotEmpty>
+		<isNotEmpty prepend="AND" property="country">
+			b.country =#country#
+		</isNotEmpty>
+		<isNotEmpty prepend="AND" property="cust_name">
+			(lower(b.cust_name) like lower('%$cust_name$%') or (lower(b.alias) like lower('%$cust_name$%')))
+		</isNotEmpty>
+		<isEqual property="dateType" compareValue="1">
+			<isNotEmpty property="startdate">
+				and c.FOB_DEAL_DATE <![CDATA[>=]]> #startdate#
+			</isNotEmpty>
+			<isNotEmpty property="enddate">
+				and c.FOB_DEAL_DATE <![CDATA[<=]]> #enddate#
+			</isNotEmpty>
+		</isEqual>
+		<isEqual property="dateType" compareValue="2">
+			<isEmpty property="enddate">
+				<isNotEmpty property="startdate">
+					and a.order_id in
+					(select o.order_id from ord_day_list o where
+					o.tr_date  <![CDATA[>=]]>
+					#startdate# and nature=1 and state=0 group by o.order_id)
+				</isNotEmpty>
+			</isEmpty>
+			<isEmpty property="startdate">
+				<isNotEmpty property="enddate">
+					and a.order_id in
+					(select o.order_id from ord_day_list o where
+					o.tr_date  <![CDATA[<=]]>
+					#enddate# and nature=1 and state=0 group by o.order_id)
+				</isNotEmpty>
+			</isEmpty>
+			<isNotEmpty property="startdate">
+				<isNotEmpty property="enddate">
+					and a.order_id in
+					(select o.order_id from ord_day_list o where
+					o.tr_date  <![CDATA[>=]]>
+					#startdate# and o.tr_date  <![CDATA[<=]]>
+					#enddate# and nature=1 and state=0 group by o.order_id)
+				</isNotEmpty>
+			</isNotEmpty>
+		</isEqual>
+		<isEqual property="dateType" compareValue="4">
+			<isEmpty property="enddate">
+				<isNotEmpty property="startdate">
+					and a.order_id in
+					(select o.order_id from ord_day_list o where
+					o.tr_date  <![CDATA[>=]]>
+					#startdate# and o.nature=14 and state=0 group by o.order_id)
+				</isNotEmpty>
+			</isEmpty>
+			<isEmpty property="startdate">
+				<isNotEmpty property="enddate">
+					and a.order_id in
+					(select o.order_id from ord_day_list o where
+					o.tr_date  <![CDATA[<=]]>
+					#enddate# and o.nature=14 and state=0 group by o.order_id)
+				</isNotEmpty>
+			</isEmpty>
+			<isNotEmpty property="startdate">
+				<isNotEmpty property="enddate">
+					and a.order_id in
+					(select o.order_id from ord_day_list o where
+					o.tr_date  <![CDATA[>=]]>
+					#startdate# and o.tr_date  <![CDATA[<=]]>
+					#enddate# and o.nature=14 and state=0 group by o.order_id)
+				</isNotEmpty>
+			</isNotEmpty>
+		</isEqual>
+		<isEqual property="dateType" compareValue="3">
+			<isEmpty property="enddate">
+				<isNotEmpty property="startdate">
+					and a.order_id in
+					(select o.order_id from ord_day_list o where
+					o.tr_date  <![CDATA[>=]]>
+					#startdate# and state=0 group by o.order_id)
+				</isNotEmpty>
+			</isEmpty>
+			<isEmpty property="startdate">
+				<isNotEmpty property="enddate">
+					and a.order_id in
+					(select o.order_id from ord_day_list o where
+					o.tr_date  <![CDATA[<=]]>
+					#enddate# and state=0 group by o.order_id)
+				</isNotEmpty>
+			</isEmpty>
+			<isNotEmpty property="startdate">
+				<isNotEmpty property="enddate">
+					and a.order_id in
+					(select o.order_id from ord_day_list o where
+					o.tr_date  <![CDATA[>=]]>
+					#startdate# and o.tr_date  <![CDATA[<=]]>
+					#enddate# and state=0 group by o.order_id)
+				</isNotEmpty>
+			</isNotEmpty>
+		</isEqual>
+		<!-- 5出云记录的登记时间 -->
+		<isEqual property="dateType" compareValue="5">
+			<isEmpty property="enddate">
+				<isNotEmpty property="startdate">
+					and a.order_id in
+					(select o.order_id from ord_day_list o where
+					o.opr_time  <![CDATA[>=]]>
+					#startdate# and o.nature=14 and state=0 group by o.order_id )
+				</isNotEmpty>
+			</isEmpty>
+			<isEmpty property="startdate">
+				<isNotEmpty property="enddate">
+					and a.order_id in
+					(select o.order_id from ord_day_list o where
+					o.opr_time  <![CDATA[<=]]>
+					#enddate# and o.nature=14 and state=0 group by o.order_id )
+				</isNotEmpty>
+			</isEmpty>
+			<isNotEmpty property="startdate">
+				<isNotEmpty property="enddate">
+					and a.order_id in
+					(select o.order_id from ord_day_list o where
+					o.opr_time  <![CDATA[>=]]>
+					#startdate# and o.opr_time  <![CDATA[<=]]>
+					#enddate# and o.nature=14 and state=0 group by o.order_id )
+				</isNotEmpty>
+			</isNotEmpty>
+		</isEqual>
+		<!-- 6尾查期 -->
+		<isEqual property="dateType" compareValue="6">
+			<isNotEmpty property="startdate">
+				and c.check_prod_date <![CDATA[>=]]> #startdate#
+			</isNotEmpty>
+			<isNotEmpty property="enddate">
+				and c.check_prod_date <![CDATA[<=]]> #enddate#
+			</isNotEmpty>
+		</isEqual>
+		<isNotEmpty prepend="and" property="prodstatus">
+			c.prodstatus =
+			#prodstatus#
+		</isNotEmpty>
+		<isNotEmpty prepend="AND" property="belong_grp">
+			(
+			a.order_id in
+			(select
+			ord_seq_no from prod_ord_info where prod_ord_seq in
+			(select distinct
+			prod_ord_seq from epc_day_list
+			where trm_no in ( select trm_no from
+			dev_trm_info where belong_grp like
+			'$belong_grp$%' )
+			union
+			select
+			prod_ord_seq from prod_plan_info where sew_fac like '$belong_grp$%'
+			or
+			bach_fac like '$belong_grp$%' or
+			pack_fac like '$belong_grp$%'
+			)
+			and
+			state != '1'
+			)
+			or
+			a.order_id in (select distinct order_id from
+			ord_day_list where grp_id like
+			'$belong_grp$%')
+			)
+		</isNotEmpty>
+		<isNotEmpty prepend="AND" property="belong_grps"> <!-- 多个工厂的查询条件 -->
+            (
+            a.order_id in
+            (select
+            ord_seq_no from prod_ord_info where prod_ord_seq in
+            (select distinct
+            prod_ord_seq from epc_day_list
+            where trm_no in ( select trm_no from
+            dev_trm_info where belong_grp in
+            ($belong_grps$) )
+            union
+            select
+            prod_ord_seq from prod_plan_info where sew_fac in
+            ($belong_grps$)
+            or
+            bach_fac in
+            ($belong_grps$)  or
+            pack_fac in
+            ($belong_grps$) 
+            )
+            and
+            state != '1'
+            )
+            or
+            a.order_id in (select distinct order_id from
+            ord_day_list where grp_id in
+            ($belong_grps$))
+            )
+        </isNotEmpty>
+		order by a.seq_no
+	</select>
+
+	<select id="queryOrdBasInfoCount" parameterClass="map"
+		resultClass="java.lang.Integer">
+		SELECT count(*) FROM ORD_BAS_INFO
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="seq_no">
+				seq_no =#seq_no#
+			</isNotEmpty>
+		</dynamic>
+	</select>
+
+	<!-- 获取订单最大号 -->
+	<select id="getOrdBasMaxSeqNo" parameterClass="map" resultClass="Integer"
+		remapResults="true">
+		SELECT max(seq_no) FROM ORD_BAS_INFO
+	</select>
+
+	<!--插入订单信息 -->
+	<insert id="insertOrdBasInfo" parameterClass="dto">
+		insert into
+		ORD_BAS_INFO (
+		SEQ_NO,ORDER_DATE,CUST_ID,BRAND,CONTRACT_ID,ORDER_ID,STYLE_NO,ARTICLE,
+		CLASSIFY,MATERIAL,ORDER_NUM,PERCENT,DELI_DATE,MERCHANDIER,APPROVED,
+		ASSIGN_NUM,BOX_INS,POINT_NOTES,STYLE_DRAWING,SIZE_CHART,ACCESSORY_LIST,
+		PROCESS_QUOTA,PROCESS_DESC,PATTERN_CODE,VERIFY,PROD_PLAN,NUM_DETAIL_LIST,
+		STATE)
+		values
+		(#seq_no#,#order_date#,#cust_id#,#brand#,#contract_id#,#order_id#,
+		#style_no#,#article#,#classify#,#material#,#order_num#,#percent#,#deli_date#,
+		#merchandier#,#approved#,#assign_num#,#box_ins#,#point_notes#,#style_drawing#,
+		#size_chart#,#accessory_list#,#process_quota#,#process_desc#,#pattern_code#,
+		#verify#,#prod_plan#,#num_detail_list#,#state#)
+	</insert>
+
+	<!-- 订单删除 -->
+	<update id="deleteOrdBasInfo" parameterClass="dto">
+		UPDATE ORD_BAS_INFO
+		<dynamic prepend="SET">
+			<isNotEmpty prepend="," property="state">
+				state =#state#
+			</isNotEmpty>
+		</dynamic>
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="seq_no">
+				seq_no =#seq_no#
+			</isNotEmpty>
+		</dynamic>
+	</update>
+	<!-- 修改订单的基础信息 -->
+	<update id="updateOrdBasInfo4prodordinfochange" parameterClass="dto">
+		update ord_bas_info set cust_id = #cust_id# , brand=#brand# ,
+		contract_id = #contract_id#, style_no = #style_no# , article =
+		#article#
+		, classify = #classify# , material = #material# , order_num =
+		#order_num# , percent = #percent# , deli_date = #deli_date#
+		,
+		merchandier = #merchandier# , ribbon_color=#ribbon_color#
+		where
+		order_id = #order_id#
+	</update>
+
+	<!-- 订单确认及修改 -->
+	<update id="updateOrdBasInfo" parameterClass="dto">
+		UPDATE ORD_BAS_INFO
+		<dynamic prepend="SET">
+			<isNotEmpty prepend="," property="order_date">
+				order_date =#order_date#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="cust_id">
+				cust_id=#cust_id#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="brand">
+				brand =#brand#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="contract_id">
+				contract_id
+				=#contract_id#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="order_id">
+				order_id =#order_id#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="style_no">
+				style_no =#style_no#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="article">
+				article =#article#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="classify">
+				classify =#classify#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="material">
+				material =#material#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="order_num">
+				order_num =#order_num#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="percent">
+				percent =#percent#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="deli_date">
+				deli_date =#deli_date#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="merchandier">
+				merchandier
+				=#merchandier#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="approved">
+				approved =#approved#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="assign_num">
+				assign_num =#assign_num#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="box_ins">
+				box_ins =#box_ins#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="point_notes">
+				point_notes
+				=#point_notes#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="style_drawing">
+				style_drawing
+				=#style_drawing#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="size_chart">
+				size_chart =#size_chart#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="accessory_list">
+				accessory_list
+				=#accessory_list#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="process_quota">
+				process_quota
+				=#process_quota#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="process_desc">
+				process_desc
+				=#process_desc#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="pattern_code">
+				pattern_code
+				=#pattern_code#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="verify">
+				verify =#verify#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="prod_plan">
+				prod_plan =#prod_plan#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="num_detail_list">
+				num_detail_list
+				=#num_detail_list#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="state">
+				state =#state#
+			</isNotEmpty>
+		</dynamic>
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="seq_no">
+				seq_no =#seq_no#
+			</isNotEmpty>
+		</dynamic>
+	</update>
+
+	<!-- 获取客户信息 -->
+	<select id="getCustIdCombox" parameterClass="map" resultClass="dto"
+		remapResults="true">
+		select cust_id as value, cust_name as text
+		from
+		BAS_CUST_LIST where state !='1' order by cust_id
+	</select>
+
+	<select id="getOrdBasInfoByGrpId" parameterClass="map"
+		resultClass="dto" remapResults="true">
+		select a.order_id as text,order_id as id ,b.num from ord_bas_info a
+		left join (select count(*) as num ,ord_seq_no from prod_ord_info group
+		by ord_seq_no) b
+		on a.order_id = b.ord_seq_no
+		left join (select
+		a.ord_seq_no,b.sew_fac,b.bach_fac,b.pack_fac
+		from prod_ord_info a inner
+		join prod_plan_info b on a.prod_ord_seq =
+		b.prod_ord_seq) c
+		on
+		a.order_id = c.ord_seq_no
+		where (c.sew_fac = #belong_grp# or c.bach_fac
+		= #belong_grp# or c.pack_fac
+		= #belong_grp#)
+		<isNotEmpty prepend="AND" property="orderstatus">
+			a.order_id in (select
+			ord_seq_no from prod_ord_info where prodstatus =
+			#orderstatus#)
+		</isNotEmpty>
+		<isNotEmpty prepend="AND" property="ismyorder">
+			a.order_id in (select
+			ord_seq_no from order_operator where account =#account#)
+		</isNotEmpty>
+		<isNotEmpty prepend="AND" property="order_id">
+			a.order_id like
+			'%$order_id$%'
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="isOnlyRFID">
+			a.order_id in (select
+			distinct ord_seq_no
+			from prod_ord_info where prod_ord_seq in(
+			select
+			prod_ord_seq from epc_day_list))
+		</isNotEmpty>
+	</select>
+</sqlMap>

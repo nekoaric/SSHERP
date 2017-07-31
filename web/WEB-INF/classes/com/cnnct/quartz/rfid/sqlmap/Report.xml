@@ -1,0 +1,1220 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+    <!-- 资源模型手工映射SQL语句 -->
+<sqlMap>
+    <typeAlias alias="dto"
+        type="org.eredlab.g4.ccl.datastructure.impl.BaseDto" />
+<!--  更新操作员登录信息  -->
+    <update id="updateAccountLoginInfo" parameterClass="dto">
+        merge into sys_login_info a using(select 1 from dual)t on
+           (a.account = #account# and a.opr_date = #opr_date#)
+        when matched then 
+        update 
+        <dynamic prepend="set">
+            <isNotEmpty prepend="," property="count">
+                count = #count#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="logintime">
+                logintime = #logintime#
+            </isNotEmpty>
+        </dynamic>
+        when not matched then
+        insert (seq_no,account,opr_date,count,logintime)
+        values(sys_login_info_seq.nextval,#account#,#opr_date#,#count#,#logintime#)
+    </update>
+<!--  查询操作员登录  -->
+    <select id="queryAccountLoginInfo" parameterClass="dto" remapResults="true" resultClass="dto">
+    select count(*) as count,account,starttime as opr_date,sum(longtime) as logintime
+        from (select account,nvl(endtime-starttime,#endtime#-starttime) as longtime ,
+			case when a.starttime is null then ''  when a.starttime=0 then '' else 
+			                TO_CHAR(a.starttime / (1000 * 60 * 60 * 24) + TO_DATE('1970-01-01 08:00:00', 'YYYY-MM-DD HH24:MI:SS'), 'YYYY-MM-DD')
+			                end  AS starttime,
+			        case when a.endtime is null then '' when a.endtime=0 then '' else 
+			                TO_CHAR(a.endtime / (1000 * 60 * 60 * 24) +  TO_DATE('1970-01-01 08:00:00', 'YYYY-MM-DD HH24:MI:SS'), 'YYYY-MM-DD')
+			                end  AS endtime
+			from sys_session_list a where ((startTime <![CDATA[<]]> #endtime# and endTime <![CDATA[>]]> #starttime#) or 
+			         (endtime is null and  starttime <![CDATA[<]]> 1413820799783)) and account is not null
+			) a
+		group by account,starttime
+    </select>
+    <!-- 更新时间信息为null的数据 -->
+    <statement id="updateNullDate4Session" parameterClass="dto">
+        begin
+            update sys_request_list set startlongtime = '0' where startlongtime is null;
+            update sys_request_list set endlongtime = '0' where endlongtime is null;
+            update sys_session_list set starttime = '0' where starttime is null;
+            update sys_session_list set endtime = '0' where endtime is null; 
+        end;
+    </statement>
+        
+    <!-- 插入系统会话表 -->
+    <update id="insertSysSessionList" parameterClass="dto">
+        merge into sys_session_list a using(select '1' from dual) t on(
+            a.sessionid=#sessionid# )
+        when matched then
+        update
+        <dynamic prepend="set">
+            <isNotEmpty prepend="," property="account">
+                account = #account#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="useragent">
+                useragent = #useragent#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="remotehost">
+                remotehost = #remotehost#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="starttime">
+                starttime = #starttime#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="endtime">
+                endtime = #endtime#
+            </isNotEmpty>
+        </dynamic>
+        when not matched then
+        insert (seq_no,sessionid,account,useragent,remotehost,starttime,endtime)
+        values(sys_session_list_seq.nextval,#sessionid#,#account#,#useragent#,#remotehost#,#starttime#,#endtime#)
+    </update>
+    <!-- 查询请求的参数  -->
+    <select id="queryFunctionInfo" parameterClass="dto" resultClass="dto">
+        select function_id,request_path,reqcode,descinfo,state
+        from sys_function_list
+        <dynamic prepend="where">
+            <isNotEmpty prepend="and" property="state">
+                state = #state#
+            </isNotEmpty>
+        </dynamic>
+    </select>
+    <!-- 插入系统请求列表 -->
+    <update id="insertSysRequestList" parameterClass="dto">
+         merge into sys_request_list a using (select '1' from dual) t on (
+	        a.uuid = #uuid#)
+        when matched then
+        update 
+        <dynamic prepend="set">
+            <isNotEmpty prepend="," property="startlongtime">
+                startlongtime = #startlongtime#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="endlongtime">
+                endlongtime = #endlongtime#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="path">
+                path = #path#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="reqcode">
+                reqcode = #reqCode#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="sessionid">
+                sessionid = #sessionid#
+            </isNotEmpty>
+        </dynamic>
+        when not matched then 
+        insert (seq_no,uuid,startlongtime,endlongtime,
+        path,reqcode,sessionid)
+        values(sys_request_list_seq.nextval,#uuid#,
+        #startlongtime#,#endlongtime#,#path#,#reqcode#,#sessionid#)
+    </update>
+      
+<!--   订单流水    -->
+<!-- 为了检测所有的改变状态，修改，删除，新增，所以不添加state的状态条件 -->
+    <select id="queryHistoryOrdDayList" parameterClass="dto" resultClass="dto" >
+        select distinct order_id,tr_date from ord_day_list where opr_time <![CDATA[<]]> #currentDate#
+        and opr_time <![CDATA[>]]> #beforeDate#
+        <isNotEmpty property="ord_status" prepend="and">
+            ord_status = #ord_status#
+        </isNotEmpty>
+        <isNotEmpty property="prodord_status" prepend="and">
+        	prodord_status = #prodord_status#
+        </isNotEmpty>
+        and state != '1'
+    </select>
+    <select id="queryOrdDaySche4ClearData" parameterClass="dto" resultClass="dto" remapResults="true">
+        select order_id,tr_date,$natureNums$ from ord_day_sche where order_id = #order_id# and 
+            tr_date = #tr_date# and state != 1
+    </select>
+<!--  查询所有涉及的订单  -->
+    <select id="queryAllOrdDaySche4ClearData" parameterClass="dto" remapResults="true">
+        select a.seq_no,a.order_id,a.tr_date,$natureNums$ from ord_day_sche a,(
+        select distinct order_id,tr_date from ord_day_list where opr_time <![CDATA[<]]> #currentDate#
+        and opr_time <![CDATA[>]]> #beforeDate#
+        <isNotEmpty property="ord_status" prepend="and">
+            ord_status = #ord_status#
+        </isNotEmpty>
+        <isNotEmpty property="prodord_status" prepend="and">
+        	prodord_status = #prodord_status#
+        </isNotEmpty>
+        and state != '1'
+        ) b
+        where b.order_id = a.order_id and b.tr_date = a.tr_date
+        and a.state !='1'
+    </select>
+    
+    <select id="queryOrdDayList4ClearData" parameterClass="dto" resultClass="dto" remapResults="true">
+        select order_id,tr_date,nature,sum(amount)as amount from ord_day_list where order_id = #order_id# and tr_date = #tr_date# and state != 1
+        group by order_id ,tr_date,nature
+    </select>
+    
+    <delete id="deleteOrdDaySche4ClearData" parameterClass="dto" >
+        delete from ord_day_sche where order_id =#order_id# and tr_date = #tr_date# 
+    </delete>
+    
+    <update id="updateOrdDayList4ClearData" parameterClass="dto" >
+        update ord_day_list set ord_status = 0 where order_id = #order_id# and tr_date=#tr_date# and state !=1
+    </update>
+<!--  产品流水  -->
+     <select id="queryHistoryEpcDayList" parameterClass="dto" resultClass="dto" >
+        select distinct c.product_id,substr(a.tr_date,0,10)as tr_date from epc_day_list a,epc_prod_list b,prod_bas_info c
+        where a.prod_ord_seq = c.prod_ord_seq and c.product_id = b.product_id and b.epc = a.epc
+        and opr_time <![CDATA[<]]> #currentDate#
+        and opr_time <![CDATA[>]]> #beforeDate# 
+        <isNotEmpty property="ord_status" prepend="and">
+            ord_status = #ord_status#
+        </isNotEmpty>
+    </select>
+    <select id="queryProdDaySche4ClearData" parameterClass="dto" resultClass="dto" remapResults="true">
+        select product_id,tr_date,$natureNums$ from prod_day_sche where product_id = #product_id# and 
+            tr_date = #tr_date# and state != 1
+    </select>
+    
+    <select id="queryProdDayList4ClearData" parameterClass="dto" resultClass="dto" remapResults="true">
+        select c.product_id,substr(a.tr_date,0,10)as tr_date ,a.nature,count(*)as amount 
+        from epc_day_list a,epc_prod_list b,prod_bas_info c
+        where a.prod_ord_seq = c.prod_ord_seq and c.product_id = b.product_id and b.epc = a.epc
+        and c.product_id = #product_id# and substr(a.tr_date,0,10) = #tr_date#
+        group by c.product_id,substr(a.tr_date,0,10),a.nature
+    </select>
+    
+    <delete id="deleteProdDaySche4ClearData" parameterClass="dto" >
+        delete from prod_day_sche where product_id =#product_id# and tr_date = #tr_date# 
+    </delete>
+    
+    <update id="updateEpcDayList4ClearData" parameterClass="dto" >
+        update ord_day_list set ord_status = 0 
+        where seq_no in     
+            (select a.seq_no 
+                from epc_day_list a,epc_prod_list b,prod_bas_info c
+                where a.prod_ord_seq = c.prod_ord_seq 
+                and c.product_id = b.product_id 
+                and b.epc = a.epc
+                and b.product_id = #product_id# 
+                and substr(a.tr_date,0,10) = #tr_date#)
+    </update>
+    
+	<!-- 生产通知单-->
+	<select id="queryProdordDaySche4ClearData" parameterClass="dto" resultClass="dto" remapResults="true">
+		  select order_id,tr_date,$natureNums$ from prodord_day_sche where order_id = #order_id# and 
+            tr_date = #tr_date# and state != 1 
+	</select>
+	<!-- 查询流水记录，按照流程，订单分类生成，有时间条件 -->
+	<select id="querySumNatureAmount4prodordClearData" parameterClass="dto" resultClass="dto">
+		select order_id,tr_date,nature,sum(amount) as amount from 
+		(
+			select order_id,tr_date,nature,sum(amount)as amount 
+				from ord_day_list 
+				where order_id = #order_id# and tr_date = #tr_date# and state != 1
+		        group by order_id ,tr_date,nature
+	        union all
+			select d.ord_seq_no as order_id,substr(a.tr_date,0,10)as tr_date ,a.nature,
+				count(*)as amount 
+		        from epc_day_list a,epc_prod_list b,prod_bas_info c,prod_ord_info d
+		        where a.prod_ord_seq = c.prod_ord_seq and c.product_id = b.product_id 
+		                and b.epc = a.epc and a.prod_ord_seq = d.prod_ord_seq
+		                and d.ord_seq_no = #order_id#  and substr(a.tr_date,0,10) = #tr_date#
+		        group by d.ord_seq_no,substr(a.tr_date,0,10),a.nature
+        )
+        group by order_id,tr_date,nature
+	</select>
+	<select id="queryHistoryDate4prodordClearData" parameterClass="dto" resultClass="dto" >
+        select distinct d.ord_seq_no as order_id,substr(a.tr_date,0,10)as tr_date 
+        from epc_day_list a,epc_prod_list b,prod_bas_info c,prod_ord_info d
+        where a.prod_ord_seq = c.prod_ord_seq and c.product_id = b.product_id and b.epc = a.epc
+        and a.prod_ord_seq = d.prod_ord_seq
+        and opr_time <![CDATA[<]]> #currentDate#
+        and opr_time <![CDATA[>]]> #beforeDate# 
+        <isNotEmpty property="prodord_status" prepend="and">
+        	prodord_status = #prodord_status#
+        </isNotEmpty>
+        group by d.ord_seq_no,substr(a.tr_date,0,10),a.nature
+        union 
+        select distinct order_id,tr_date from ord_day_list where opr_time <![CDATA[<]]> #currentDate#
+        and opr_time <![CDATA[>]]> #beforeDate#
+        <isNotEmpty property="ord_status" prepend="and">
+            ord_status = #ord_status#
+        </isNotEmpty>
+        <isNotEmpty property="prodord_status" prepend="and">
+        	prodord_status = #prodord_status#
+        </isNotEmpty>
+        and state !='1'
+    </select>
+    
+    <delete id="deleteProdordDaySche4ClearData" parameterClass="dto">
+    	delete prodord_day_sche where order_id = #order_id# and tr_date = #tr_date#
+    </delete>
+    
+	<update id="updateEpcDaylist4ProdordDayscheClearData" parameterClass="dto">
+		update epc_day_list set prodord_status = '0' 
+		where seq_no in 
+		(select a.seq_no 
+			from epc_day_list a,prod_ord_info b 
+			where a.prod_ord_seq = b.prod_ord_seq and b.ord_seq_no = #order_id# and a.tr_date = #tr_date#)
+	</update>
+	<update id="updateOrdDayList4ProdordDayscheClearData" parameterClass="dto">
+		update ord_day_list set prodord_status = '0'
+		where state = '0' and tr_date = #tr_date# and order_id = #order_id#
+	</update>
+	
+	
+	<!--  ~~~~  -->
+    <update id="updateNull2Zero" parameterClass="dto">
+        update
+        $table_name$ set $column_name$ = 0 where $column_name$ is null
+    </update>
+    
+    <update id="updateEpcDayListInfo">
+        update epc_day_list set ord_seq_no = epcbindordseqno(epc),prod_ord_seq =
+        epcbindprodordseq(epc)
+        where ord_seq_no is null and prod_ord_seq is null
+        and prodord_status = '0'
+	</update>
+
+    <update id="updateEpcDayListStatus">
+        update epc_day_list set ord_status = '8', prodord_status = '8' , dept_status
+        = '8'
+        where ord_seq_no is null and prod_ord_seq is null
+        and epc not in (select epc from epc_prod_list where state = 0)
+	</update>
+
+    <update id="updateOrdBaseHistory">
+       update prod_ord_info set historystatus=1 where
+       fob_deal_date is not null and ltrim(rtrim(fob_deal_date)) is not null and 
+        round(to_number(sysdate-to_date(fob_deal_date,'yyyy-mm-dd'))) <![CDATA[>]]> 90
+        and historystatus='0'
+	</update>
+	
+    <update id="updateOrdBaseBackData4History">
+       update prod_ord_info set historystatus=0 where
+       fob_deal_date is not null and ltrim(rtrim(fob_deal_date)) is not null and 
+        round(to_number(sysdate-to_date(fob_deal_date,'yyyy-mm-dd'))) <![CDATA[<=]]> 90
+        and historystatus = '1'
+    </update>
+	
+    <!--获取需要同步的标签记录-->
+    <select id="getEpcDayListByStatus" parameterClass="dto"
+        resultClass="dto">
+        SELECT
+        a.seq_no,a.tr_date,a.epc,a.trm_no,a.nature,a.opr_id,a.opr_time,a.ord_status,a.dept_status,
+        b.product_id,b.prod_ord_seq,b.ord_seq_no,b.ord_num as
+        order_num,b.ins_num,b.real_num,c.user_name,c.dept_id,
+        b.nature as old_nature
+        FROM epc_day_list a left join
+        (select
+        a.epc,b.product_id,b.prod_ord_seq,b.ord_seq_no,b.ord_num,b.ins_num,b.real_num,a.nature
+        from epc_prod_list a left join prod_bas_info b on a.product_id =
+        b.product_id )b
+        on a.epc = b.epc and a.prod_ord_seq = b.prod_ord_seq
+        left join sys_user_info c on a.opr_id = c.user_id
+        <dynamic prepend="where">
+            <isNotEmpty property="ord_status" prepend="and">
+                a.ord_status in ($ord_status$)
+			</isNotEmpty>
+            <isNotEmpty property="dept_status" prepend="and">
+                a.dept_status in ($dept_status$)
+			</isNotEmpty>
+            <isNotEmpty property="natures" prepend="and">
+                a.nature
+                in ($natures$)
+            </isNotEmpty>
+        </dynamic>
+    </select>
+
+    <select id="getOrdDayListByStatus" parameterClass="dto"
+        resultClass="dto">
+        SELECT
+        a.seq_no,a.order_id,a.tr_date,a.nature,a.amount,a.opr_id,a.opr_time,a.ord_status,a.dept_status,
+        a.dept_id,a.style_no
+        FROM ord_day_list a
+        where 1=1
+        <isNotEmpty property="ord_status" prepend="and">
+            a.ord_status in ($ord_status$)
+		</isNotEmpty>
+        <isNotEmpty property="dept_status" prepend="and">
+            a.dept_status in ($dept_status$)
+		</isNotEmpty>
+        <isNotEmpty property="natures" prepend="and">
+            a.nature in
+            ($natures$)
+        </isNotEmpty>
+        and state = '0'
+    </select>
+
+    <!-- 查询记录流水:生产通知单日进度记录查询 -->
+    <select id="getStreamDataByProdordStatus" parameterClass="dto"
+        resultClass="dto">
+        select a.tr_date,a.order_id,a.style_no,a.nature,sum(a.amount)as
+        amount,a.prodord_status
+        from ord_day_list a where 1 = 1
+        <isNotEmpty property="prodord_status" prepend="and">
+            a.prodord_status in ($prodord_status$)
+			</isNotEmpty>
+        <isNotEmpty property="status" prepend="and">
+            a.nature in ($natures$)
+            </isNotEmpty>
+        and state = '0'
+        group by tr_date,order_id,style_no,nature,prodord_status
+        union all
+        select a.tr_date,b.ord_seq_no as
+        order_id,b.style_no,a.nature,count(a.epc),a.prodord_status 
+        from  epc_day_list a, prod_ord_info b ,prod_bas_info c,epc_prod_list d
+        where a.prod_ord_seq = b.prod_ord_seq and b.prod_ord_seq = c.prod_ord_seq
+        and c.product_id = d.product_id and a.epc= d.epc
+        <isNotEmpty property="prodord_status" prepend="and">
+            a.prodord_status in ($prodord_status$)
+		</isNotEmpty>
+        <isNotEmpty property="status" prepend="and">
+            a.nature in ($natures$)
+        </isNotEmpty>
+        and b.state = '0'
+        group by a.tr_date,a.nature,a.prodord_status,b.style_no,b.ord_seq_no
+    </select>
+    <!-- 修改更新状态 -->
+    <statement id="updateProdordStatus" parameterClass="dto">
+        begin
+        <isNotEmpty property="prodord_status">
+            update epc_day_list set prodord_status = #prodord_status# where
+            prodord_status = #start_status#;
+            update ord_day_list set prodord_status = #prodord_status# where
+            prodord_status = #start_status#;
+			</isNotEmpty>
+        end;
+    </statement>
+    <update id="updateEpcDayList4Prodord" parameterClass="dto">
+        <isNotEmpty property="prodord_status">
+            update epc_day_list set prodord_status = #prodord_status#
+            where prodord_status = #start_status#
+            and nature in ($natures$)
+            <isNotEmpty property="maxBatch" prepend="and">
+                seq_no in (select seq_no from epc_day_list where
+                prodord_status=#start_status# and rownum <![CDATA[<]]>
+                $maxBatch$)
+            </isNotEmpty>
+        </isNotEmpty>
+    </update>
+    <update id="updateOrdDayList4Prodord" parameterClass="dto">
+        <isNotEmpty property="prodord_status">
+            update ord_day_list set prodord_status = #prodord_status#
+            where prodord_status = #start_status#
+            and nature in ($natures$)
+            <isNotEmpty property="maxBatch" prepend="and">
+                seq_no in (select seq_no from ord_day_list where
+                prodord_status=#start_status# and rownum <![CDATA[<]]>
+                $maxBatch$)
+            </isNotEmpty>
+        </isNotEmpty>
+    </update>
+    <!-- 查询生产通知单日进度信息：生成生产通知单总进度信息 -->
+    <select id="getProdordDaySche4ProdordScheList"
+        parameterClass="dto" resultClass="dto">
+        select order_id,style_no,sum(real_cut_num)as real_cut_num,sum(draw_num)as
+        draw_num,sum(sew_num)as sew_num,sum(bach_accept_num)as
+        bach_accept_num,
+        sum(bach_delivery_num)as bach_delivery_num,sum(pack_accept_num)as
+        pack_accept_num,sum(f_product_num)as f_product_num,
+        sum(b_product_num)as b_product_num,sum(receive_f_product)as
+        receive_f_product,sum(receive_b_product)as
+        receive_b_product,sum(middle_take)as middle_take,
+        sum(sew_delivery_num)as
+        sew_delivery_num,sum(sendout_f_product)as
+        sendout_f_product,sum(sendout_b_product)as sendout_b_product
+        from (select a.* from prodord_day_sche a
+        join (select max(order_id) as order_id,max(style_no) as style_no from
+        prodord_day_sche where status=#status# group by
+        order_id,style_no) b
+        on a.order_id = b.order_id and a.style_no = b.style_no
+        )
+        group by order_id,style_no
+	</select>
+    <!-- 插入生产通知单日进度表 -->
+    <insert id="insertProdordDaySche" parameterClass="dto">
+        merge into prodord_day_sche a using(select '1' from dual) t on(
+        a.tr_date=#tr_date# and a.order_id =     #order_id#)
+        when matched then
+        update
+        <dynamic prepend="set">
+            <isNotEmpty prepend="," property="real_cut_num">
+                real_cut_num =real_cut_num+#real_cut_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="draw_num">
+                draw_num =draw_num+#draw_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="sew_num">
+                sew_num = sew_num+#sew_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="bach_accept_num">
+                bach_accept_num =bach_accept_num+#bach_accept_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="bach_delivery_num">
+                bach_delivery_num =bach_delivery_num+#bach_delivery_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="pack_accept_num">
+                pack_accept_num =pack_accept_num+#pack_accept_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="f_product_num">
+                f_product_num = f_product_num+#f_product_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="b_product_num">
+                b_product_num = b_product_num+#b_product_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="receive_f_product">
+                receive_f_product =
+                receive_f_product+#receive_f_product#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="receive_b_product">
+                receive_b_product =
+                receive_b_product+#receive_b_product#   
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="middle_take">
+                middle_take = middle_take+#middle_take#   
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="sew_delivery_num">
+                sew_delivery_num = sew_delivery_num + #sew_delivery_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="sendout_f_product">
+                sendout_f_product = sendout_f_product +
+                #sendout_f_product#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="sendout_b_product">
+                sendout_b_product = sendout_b_product +
+                #sendout_b_product#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="status">
+                status = #status#
+			</isNotEmpty>
+        </dynamic>
+        when not matched then
+        insert (seq_no, tr_date,order_id, order_num, ins_num,
+        real_cut_num,draw_num,sew_num,
+        bach_accept_num, bach_delivery_num, pack_accept_num, f_product_num, b_product_num,
+        receive_f_product,receive_b_product,middle_take,sew_delivery_num,sendout_f_product,sendout_b_product,
+        remark, state,status,style_no)
+        values
+        (seq_prod_day_sche_seq_no.nextval, #tr_date#,#order_id#, #order_num#,#ins_num#,
+        #real_cut_num#,#draw_num#,#sew_num#,#bach_accept_num#,
+        #bach_delivery_num#, #pack_accept_num#,
+        #f_product_num#,
+        #b_product_num#,#receive_f_product#,#receive_b_product#,#middle_take#,#sew_delivery_num#,
+        #sendout_f_product#,#sendout_b_product#,#remark#,#state#,#status#,#style_no#)
+    </insert>
+    <!--插入产品日进度表-->
+    <insert id="insertProdDaySche" parameterClass="dto">
+        merge into prod_day_sche a using (select '1' from dual) t on (
+        a.tr_date = #tr_date# and a.product_id = #product_id# and
+        a.state = #state#)
+        when matched then
+        update
+        <dynamic prepend="set">
+            <isNotEmpty prepend="," property="real_cut_num">
+                real_cut_num =real_cut_num+#real_cut_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="draw_num">
+                draw_num =draw_num+#draw_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="sew_num">
+                sew_num = sew_num+#sew_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="bach_accept_num">
+                bach_accept_num =bach_accept_num+#bach_accept_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="bach_delivery_num">
+                bach_delivery_num =bach_delivery_num+#bach_delivery_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="pack_accept_num">
+                pack_accept_num =pack_accept_num+#pack_accept_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="f_product_num">
+                f_product_num = f_product_num+#f_product_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="b_product_num">
+                b_product_num = b_product_num+#b_product_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="receive_f_product">
+                receive_f_product =
+                receive_f_product+#receive_f_product#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="receive_b_product">
+                receive_b_product =
+                receive_b_product+#receive_b_product#   
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="middle_take">
+                middle_take = middle_take+#middle_take#   
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="sew_delivery_num">
+                sew_delivery_num = sew_delivery_num + #sew_delivery_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="sendout_f_product">
+                sendout_f_product = sendout_f_product +
+                #sendout_f_product#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="sendout_b_product">
+                sendout_b_product = sendout_b_product +
+                #sendout_b_product#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="status">
+                status = #status#
+			</isNotEmpty>
+        </dynamic>
+        when not matched then
+        insert (seq_no, tr_date, product_id, order_num, ins_num,
+        real_cut_num,draw_num,sew_num,
+        bach_accept_num, bach_delivery_num, pack_accept_num, f_product_num, b_product_num,
+        receive_f_product,receive_b_product,middle_take,sew_delivery_num,sendout_f_product,sendout_b_product,
+        remark, state,status)
+        values
+        (seq_prod_day_sche_seq_no.nextval, #tr_date#, #product_id#, #order_num#,#ins_num#,
+        #real_cut_num#,#draw_num#,#sew_num#,#bach_accept_num#,
+        #bach_delivery_num#, #pack_accept_num#,
+        #f_product_num#,
+        #b_product_num#,#receive_f_product#,#receive_b_product#,#middle_take#,#sew_delivery_num#,
+        #sendout_f_product#,#sendout_b_product#,#remark#,#state#,#status#)
+    </insert>
+    <!-- 更新生产通知单总进度 -->
+    <insert id="upddateProdordScheList" parameterClass="dto">
+        merge into prodord_sche_list a using (select '1' from dual) t on
+        (
+        a.order_id = #order_id#)
+        when matched then
+        update
+        <dynamic prepend="set">
+            <isNotEmpty prepend="," property="real_cut_num">
+                real_cut_num =#real_cut_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="draw_num">
+                draw_num =#draw_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="sew_num">
+                sew_num = #sew_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="bach_accept_num">
+                bach_accept_num =#bach_accept_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="bach_delivery_num">
+                bach_delivery_num =#bach_delivery_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="pack_accept_num">
+                pack_accept_num =#pack_accept_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="f_product_num">
+                f_product_num = #f_product_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="b_product_num">
+                b_product_num = #b_product_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="receive_f_product">
+                receive_f_product = #receive_f_product#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="receive_b_product">
+                receive_b_product = #receive_b_product#   
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="middle_take">
+                middle_take = #middle_take#   
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="sew_delivery_num">
+                sew_delivery_num = #sew_delivery_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="sendout_f_product">
+                sendout_f_product = #sendout_f_product#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="sendout_b_product">
+                sendout_b_product = #sendout_b_product#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="status">
+                status = #status#
+			</isNotEmpty>
+        </dynamic>
+        when not matched then
+        insert (seq_no, order_id, order_num, ins_num, real_cut_num,draw_num,sew_num,
+        bach_accept_num, bach_delivery_num, pack_accept_num,
+        f_product_num, b_product_num,
+        receive_f_product,receive_b_product,middle_take,sew_delivery_num,sendout_f_product,sendout_b_product,
+        remark, state,style_no)
+        values
+        (seq_ord_day_sche_seq_no.nextval, #order_id#, #order_num#,#ins_num#,
+        #real_cut_num#,#draw_num#,#sew_num#,#bach_accept_num#,
+        #bach_delivery_num#, #pack_accept_num#,
+        #f_product_num#,
+        #b_product_num#,#receive_f_product#,#receive_b_product#,#middle_take#,#sew_delivery_num#,
+        #sendout_f_product#,#sendout_b_product#,#remark#,#state#,#style_no#)
+    </insert>
+    <!-- 修改状态 :status： 目标状态，start_status：原始状态-->
+    <update id="updateProdordDaySche" parameterClass="dto">
+        <isNotEmpty property="status">
+            update prodord_day_sche set status = #status#
+            <isNotEmpty property="start_status">
+                where status in ($start_status$) 
+			</isNotEmpty>
+        </isNotEmpty>
+    </update>
+    
+    <!--插入订单日进度表-->
+    <insert id="insertOrdDaySche" parameterClass="dto">
+        merge into ord_day_sche a using (select '1' from dual) t on (
+        a.tr_date = #tr_date# and a.order_id = #order_id# and a.state =
+        #state#)
+        when matched then
+        update
+        <dynamic prepend="set">
+            <isNotEmpty prepend="," property="real_cut_num">
+                real_cut_num =real_cut_num+#real_cut_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="draw_num">
+                draw_num =draw_num+#draw_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="sew_num">
+                sew_num = sew_num+#sew_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="bach_accept_num">
+                bach_accept_num =bach_accept_num+#bach_accept_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="bach_delivery_num">
+                bach_delivery_num =bach_delivery_num+#bach_delivery_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="pack_accept_num">
+                pack_accept_num =pack_accept_num+#pack_accept_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="f_product_num">
+                f_product_num = f_product_num+#f_product_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="b_product_num">
+                b_product_num = b_product_num+#b_product_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="receive_f_product">
+                receive_f_product =
+                receive_f_product+#receive_f_product#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="receive_b_product">
+                receive_b_product =
+                receive_b_product+#receive_b_product#   
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="middle_take">
+                middle_take = middle_take+#middle_take#   
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="sew_delivery_num">
+                sew_delivery_num = sew_delivery_num + #sew_delivery_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="sendout_f_product">
+                sendout_f_product = sendout_f_product +
+                #sendout_f_product#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="sendout_b_product">
+                sendout_b_product = sendout_b_product +
+                #sendout_b_product#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="pack_a_accept">
+                pack_a_accept = pack_a_accept + #pack_a_accept#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="pack_a_delivery">
+                pack_a_delivery = pack_a_delivery + #pack_a_delivery#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="pack_b_accept">
+                pack_b_accept = pack_b_accept + #pack_b_accept#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="pack_b_delivery">
+                pack_b_delivery = pack_b_delivery + #pack_b_delivery#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="pack_c_accept">
+                pack_c_accept = pack_c_accept + #pack_c_accept#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="pack_c_delivery">
+                pack_c_delivery = pack_c_delivery + #pack_c_delivery#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="sendout_b_depot">
+                sendout_b_depot = sendout_b_depot +
+                #sendout_b_depot#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="receive_b_depot">
+                receive_b_depot = receive_b_depot +
+                #receive_b_depot#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="status">
+                status = #status#
+			</isNotEmpty>
+        </dynamic>
+        when not matched then
+        insert (seq_no, tr_date, order_id, order_num, ins_num,
+        real_cut_num,draw_num,sew_num,
+        bach_accept_num, bach_delivery_num, pack_accept_num, f_product_num, b_product_num,
+        receive_f_product,receive_b_product,middle_take,sew_delivery_num,sendout_f_product,sendout_b_product,sendout_b_depot,receive_b_depot,
+        remark, state,status,pack_a_accept,pack_a_delivery,pack_b_accept,pack_b_delivery,
+        pack_c_accept,pack_c_delivery)
+        values
+        (seq_ord_day_sche_seq_no.nextval, #tr_date#, #order_id#, #order_num#,#ins_num#,
+        #real_cut_num#,#draw_num#,#sew_num#,#bach_accept_num#,
+        #bach_delivery_num#, #pack_accept_num#,
+        #f_product_num#,
+        #b_product_num#,#receive_f_product#,#receive_b_product#,#middle_take#,#sew_delivery_num#,
+        #sendout_f_product#,#sendout_b_product#,#sendout_b_depot#,#receive_b_depot#,#remark#,#state#,#status#,
+        #pack_a_accept#,#pack_a_delivery#,#pack_b_accept#,#pack_b_delivery#,#pack_c_accept#,#pack_c_delivery#)
+    </insert>
+
+    <!--更改epc_day_list中的同步状态-->
+    <update id="updateStatusInEpcDayList" parameterClass="dto">
+        update epc_day_list
+        <dynamic prepend="set">
+            <isNotEmpty prepend="," property="update_ord_status">
+                ord_status = #update_ord_status#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="update_dept_status">
+                dept_status = #update_dept_status#
+			</isNotEmpty>
+        </dynamic>
+        <dynamic prepend="where">
+            <isNotEmpty prepend="and" property="seq_no">
+                seq_no = #seq_no#
+			</isNotEmpty>
+            <isNotEmpty property="ord_status" prepend="and">
+                ord_status in ($ord_status$)
+                <isNotEmpty property="maxBatch" prepend="and">
+                    seq_no in (select seq_no from epc_day_list where
+                    ord_status in ($ord_status$) and rownum <![CDATA[<]]>$maxBatch$)
+                </isNotEmpty>
+            </isNotEmpty>
+            <isNotEmpty property="dept_status" prepend="and">
+                dept_status in ($dept_status$)
+                <isNotEmpty property="maxBatch" prepend="and">
+                    seq_no in (select seq_no from epc_day_list where
+                    dept_status in ($dept_status$) and rownum <![CDATA[<]]>$maxBatch$)
+                </isNotEmpty>
+            </isNotEmpty>
+            <isNotEmpty property="natures" prepend="and">
+                nature in
+                ($natures$)
+            </isNotEmpty>
+        </dynamic>
+    </update>
+
+    <!--更改ord_day_list中的同步状态-->
+    <update id="updateStatusInOrdDayList" parameterClass="dto">
+        update ord_day_list
+        <dynamic prepend="set">
+            <isNotEmpty prepend="," property="update_ord_status">
+                ord_status = #update_ord_status#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="update_dept_status">
+                dept_status = #update_dept_status#
+			</isNotEmpty>
+        </dynamic>
+        where state = '0'
+        <isNotEmpty prepend="and" property="seq_no">
+            seq_no = #seq_no#
+			</isNotEmpty>
+        <isNotEmpty property="ord_status" prepend="and">
+            ord_status in ($ord_status$)
+            <isNotEmpty property="maxBatch" prepend="and">
+                seq_no in (select seq_no from ord_day_list where
+                ord_status in ($ord_status$) and rownum <![CDATA[<]]>$maxBatch$)
+            </isNotEmpty>
+        </isNotEmpty>
+        <isNotEmpty property="dept_status" prepend="and">
+            dept_status in ($dept_status$)
+            <isNotEmpty property="maxBatch" prepend="and">
+                seq_no in (select seq_no from ord_day_list where
+                dept_status in ($dept_status$) and rownum <![CDATA[<]]>$maxBatch$)
+            </isNotEmpty>
+        </isNotEmpty>
+        <isNotEmpty property="natures" prepend="and">
+            nature in ($natures$)
+            </isNotEmpty>
+    </update>
+
+    <!--更改prod_day_sche中的同步状态-->
+    <update id="updateStatusInProdDaySche" parameterClass="dto">
+        update prod_day_sche set status = #update_status#
+        where status in ($status$)
+	</update>
+
+    <!--更改ord_day__sche中的同步状态-->
+    <update id="updateStatusInOrdDaySche" parameterClass="dto">
+        update ord_day_sche set status = #status#
+        where status =
+        #start_status#
+        <isNotEmpty prepend="and" property="maxBatch">
+            seq_no in (select seq_no from ord_day_sche where
+            status=#start_status# and rownum <![CDATA[<]]>
+            $maxBatch$ )
+        </isNotEmpty>
+    </update>
+
+    <!--统计订单日进度表中各个数量-->
+    <select id="getSumProdDayScheByProductId" parameterClass="dto"
+        resultClass="dto">
+        select sum(a.real_cut_num) as real_cut_num,
+        sum(a.draw_num) as draw_num,sum(a.sew_num) as sew_num,sum(a.bach_accept_num) as
+        bach_accept_num,
+        sum(a.bach_delivery_num) as bach_delivery_num,sum(a.pack_accept_num) as pack_accept_num,
+        sum(a.f_product_num) as f_product_num,sum(a.b_product_num) as
+        b_product_num,
+        a.product_id,'0' as state,max(b.ord_num) as order_num,max(b.ins_num) as ins_num,
+        sum(a.receive_f_product) as
+        receive_f_product,sum(receive_b_product) as receive_b_product,
+        sum(a.middle_take) as middle_take,sum(a.sew_delivery_num)as
+        sew_delivery_num,sum(a.sendout_f_product) as sendout_f_product,
+        sum(a.sendout_b_product)as sendout_b_product
+        from prod_day_sche a left join prod_bas_info b on a.product_id =
+        b.product_id
+        where a.product_id in (select product_id from prod_day_sche where status =
+        #status#)
+        group by a.product_id
+	</select>
+
+    <!--统计订单日进度表中各个数量-->
+    <select id="getSumOrdDayScheByOrderId" parameterClass="dto"
+        resultClass="dto">
+        select sum(a.real_cut_num) as real_cut_num,
+        sum(a.draw_num) as draw_num,sum(a.sew_num) as sew_num,sum(a.bach_accept_num) as
+        bach_accept_num,
+        sum(a.bach_delivery_num) as bach_delivery_num,sum(a.pack_accept_num) as pack_accept_num,
+        sum(a.f_product_num) as f_product_num,sum(a.b_product_num) as
+        b_product_num,
+        a.order_id,'0' as state,max(b.ord_num) as order_num,max(b.ins_num) as ins_num,
+        sum(a.receive_f_product)as
+        receive_f_product,sum(a.receive_b_product)as receive_b_product,
+        sum(a.middle_take)as middle_take,sum(a.sew_delivery_num) as
+        sew_delivery_num,sum(a.sendout_f_product)as sendout_f_product,
+        sum(a.sendout_b_product)as sendout_b_product,
+        sum(a.pack_a_accept) as package_a_accept
+        from ord_day_sche a
+        left join (select sum(ord_num) as ord_num,sum(ins_num) as ins_num
+        ,ord_seq_no from prod_bas_info group by ord_seq_no) b
+        on a.order_id = b.ord_seq_no
+        where a.order_id in (select order_id from ord_day_sche where status =
+        #status#)
+        group by a.order_id
+	</select>
+
+    <!--插入产品进度表-->
+    <insert id="insertProdScheList" parameterClass="dto">
+        merge into prod_sche_list a using (select '1' from dual) t on (
+        a.product_id = #product_id# and a.state = #state#)
+        when matched then
+        update
+        <dynamic prepend="set">
+            <isNotEmpty prepend="," property="real_cut_num">
+                real_cut_num =#real_cut_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="draw_num">
+                draw_num =#draw_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="sew_num">
+                sew_num = #sew_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="bach_accept_num">
+                bach_accept_num =#bach_accept_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="bach_delivery_num">
+                bach_delivery_num =#bach_delivery_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="pack_accept_num">
+                pack_accept_num =#pack_accept_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="f_product_num">
+                f_product_num = #f_product_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="receive_f_product">
+                receive_f_product = #receive_f_product#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="receive_b_product">
+                receive_b_product = #receive_b_product#   
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="middle_take">
+                middle_take = #middle_take#   
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="sew_delivery_num">
+                sew_delivery_num = #sew_delivery_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="b_product_num">
+                b_product_num = #b_product_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="sendout_f_product">
+                sendout_f_product = #sendout_f_product#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="sendout_b_product">
+                sendout_b_product = #sendout_b_product#
+            </isNotEmpty>
+        </dynamic>
+        when not matched then
+        insert (seq_no, product_id, order_num, ins_num, real_cut_num, draw_num,
+        sew_num, bach_accept_num, bach_delivery_num, pack_accept_num,
+        f_product_num, b_product_num,
+        receive_f_product,receive_b_product,middle_take,sew_delivery_num,sendout_f_product,sendout_b_product,
+        remark, state)
+        values
+        (seq_prod_sche_list_seq_no.nextval,#product_id#, #order_num#,#ins_num#,#real_cut_num#,#draw_num#,
+        #sew_num#,#bach_accept_num#, #bach_delivery_num#,
+        #pack_accept_num#,#f_product_num#, #b_product_num#,
+        #receive_f_product#,#receive_b_product#,#middle_take#,#sew_delivery_num#,#sendout_f_product#,#sendout_b_product#,
+        #remark#,#state#)
+    </insert>
+
+    <!--插入产品进度表-->
+    <insert id="insertOrdScheList" parameterClass="dto">
+        merge into ord_sche_list a using (select '1' from dual) t on (
+        a.order_id = #order_id# and a.state = #state#)
+        when matched then
+        update
+        <dynamic prepend="set">
+            <isNotEmpty prepend="," property="real_cut_num">
+                real_cut_num =#real_cut_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="draw_num">
+                draw_num =#draw_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="sew_num">
+                sew_num = #sew_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="bach_accept_num">
+                bach_accept_num =#bach_accept_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="bach_delivery_num">
+                bach_delivery_num =#bach_delivery_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="pack_accept_num">
+                pack_accept_num =#pack_accept_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="f_product_num">
+                f_product_num = #f_product_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="receive_f_product">
+                receive_f_product = #receive_f_product#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="receive_b_product">
+                receive_b_product = #receive_b_product#   
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="middle_take">
+                middle_take = #middle_take#   
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="sew_delivery_num">
+                sew_delivery_num = #sew_delivery_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="sendout_f_product">
+                sendout_f_product = #sendout_f_product#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="sendout_b_product">
+                sendout_b_product = #sendout_b_product#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="b_product_num">
+                b_product_num = #b_product_num#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="pack_a_accept">
+                pack_a_accept =  #pack_a_accept#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="pack_a_delivery">
+                pack_a_delivery =  #pack_a_delivery#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="pack_b_accept">
+                pack_b_accept =  #pack_b_accept#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="pack_b_delivery">
+                pack_b_delivery =  #pack_b_delivery#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="pack_c_accept">
+                pack_c_accept =  #pack_c_accept#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="pack_c_delivery">
+                pack_c_delivery =  #pack_c_delivery#
+            </isNotEmpty>
+        </dynamic>
+        when not matched then
+        insert (seq_no, order_id, order_num, ins_num, real_cut_num, draw_num,
+        sew_num, bach_accept_num, bach_delivery_num, pack_accept_num,
+        f_product_num, b_product_num,
+        receive_f_product,receive_b_product,middle_take,sew_delivery_num,sendout_f_product,sendout_b_product,
+        remark, state,pack_a_accept,pack_a_delivery,pack_b_accept,pack_b_delivery,pack_c_accept,pack_c_delivery)
+        values
+        (seq_prod_sche_list_seq_no.nextval,#order_id#, #order_num#,#ins_num#,#real_cut_num#,#draw_num#,
+        #sew_num#,#bach_accept_num#, #bach_delivery_num#,
+        #pack_accept_num#,#f_product_num#, #b_product_num#,
+        #receive_f_product#,#receive_b_product#,#middle_take#,#sew_delivery_num#,#sendout_f_product#,#sendout_b_product#,
+        #remark#,#state#,#pack_a_accept#,#pack_a_delivery#,#pack_b_accept#,#pack_b_delivery#,#pack_c_accept#,#pack_c_delivery#)
+    </insert>
+
+    <!-- 插入部门日进度表-->
+    <insert id="insertDeptDaySche" parameterClass="dto">
+        merge into dept_day_sche a using (select '1' from dual) t on (
+        a.tr_date = #tr_date# and a.dept_id = #dept_id# and a.nature =
+        #nature#
+        and a.product_id = #product_id# and a.state = #state#)
+        when matched then
+        update
+        <dynamic prepend="set">
+            <isNotEmpty prepend="," property="day_num">
+                day_num =day_num+#day_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="complete_num">
+                complete_num =complete_num+#complete_num#
+			</isNotEmpty>
+            <isNotEmpty prepend="," property="total_num">
+                total_num =#total_num#
+			</isNotEmpty>
+        </dynamic>
+        when not matched then
+        insert (seq_no, tr_date, dept_id, nature, product_id, day_num, complete_num,
+        total_num, state)
+        values (seq_dept_day_list_seq_no.nextval, #tr_date#, #dept_id#, #nature#,
+        #product_id#,
+        #day_num#,#complete_num#, #total_num#, #state#)
+    </insert>
+    <!-- 此方法只能记录不能回退到前面的流程 -->
+    <update id="updateEpcProdListByEpcDayList" parameterClass="dto">
+        update epc_prod_list set nature = #nature#,last_trm_no =
+        #trm_no#
+        where epc = #epc# and product_id =#product_id# and
+        (nature <![CDATA[<]]>
+        #nature# or nature is null)
+    </update>
+
+    <update id="updateEpcProdListByEpcDayList2" parameterClass="dto">
+        update epc_prod_list set nature = #nature#,last_trm_no =
+        #trm_no#
+        where epc = #epc# and product_id =#product_id#
+	</update>
+
+    <select id="getProdDayScheByEpcDayList" parameterClass="dto"
+        resultClass="dto">
+        select * from prod_day_sche where product_id in
+        (select distinct product_id from (select a.product_id,a.epc,b.prod_ord_seq
+        from epc_prod_list a
+        left join prod_bas_info b on a.product_id = b.product_id)a left join
+        epc_day_list b on a.epc=b.epc and a.prod_ord_seq =
+        b.prod_ord_seq
+        <dynamic prepend="where">
+            <isNotEmpty property="ord_status" prepend="and">
+                b.ord_status in ($ord_status$)
+			</isNotEmpty>
+            <isNotEmpty property="dept_status" prepend="and">
+                b.dept_status in ($dept_status$)
+			</isNotEmpty>
+        </dynamic>
+        )
+        and tr_date in
+        (select distinct tr_date from epc_day_list
+        <dynamic prepend="where">
+            <isNotEmpty property="ord_status" prepend="and">
+                ord_status in ($ord_status$)
+			</isNotEmpty>
+            <isNotEmpty property="dept_status" prepend="and">
+                dept_status in ($dept_status$)
+			</isNotEmpty>
+        </dynamic>
+        )
+
+    </select>
+
+		
+	<!-- 查看订单状态是0，1的生产通知单 -->
+	<select id="getOrdSeqNoByProdstatus" resultClass="dto">
+		select * from prod_ord_info 
+		where prodstatus = '1' or prodstatus = '0' 
+	</select >
+	<!-- 查看订单进度的汇总数量 -->
+	<select id="getSumCutSendNumInOrdSche" parameterClass="dto" resultClass="dto" >
+		<![CDATA[ 
+		select  
+		sum(real_cut_num)as real_cut_num,
+		sum(draw_num)as draw_num,
+		sum(sew_num)as sew_num,
+		sum(bach_accept_num)as bach_accept_num,
+		sum(bach_delivery_num)as bach_delivery_num,
+		sum(pack_accept_num)as pack_accept_num,
+		sum(f_product_num)as f_product_num,
+		sum(b_product_num)as b_product_num,
+		sum(receive_f_product)as receive_f_product,
+		sum(receive_b_product)as receive_b_product,
+		sum(middle_take)as middle_take,
+		sum(sew_delivery_num)as sew_delivery_num,
+		sum(sendout_f_product)as sendout_f_product,
+		sum(sendout_b_product)as sendout_b_product
+		from ord_day_sche  
+		where order_id = #ord_seq_no# 
+		]]>
+	</select>
+	<!-- 如果是定时任务更新的订单状态，记录最后修改时间为定时任务发生时间 -->
+	<update id="updateProdStatusByOderId"  parameterClass="dto">
+		update prod_ord_info  
+		set prodstatus = #prodstatus# 
+		where ord_seq_no = #ord_seq_no#
+	</update>
+	
+	 <!-- 获取需要汇总的尺寸信息 -->
+     <select id="querySizeInfo4Update"  resultClass="dto" >
+    	SELECT seq_no,nature,order_id,country,color,in_length,waist,num
+    	from ord_size_info 
+    	where statue='1'
+    </select>
+    <update id="updateSizeInfo4Delete"   >
+    	update ord_size_info set num=0-num,statue='1' where statue='2' 
+    </update>
+    <update id="updateProdBaseSizeInfo" parameterClass="dto">
+        update prod_bas_info set
+        <dynamic >
+        	<isNotEmpty  property="real_cut_num">
+                 real_cut_num =real_cut_num + #real_cut_num#
+            </isNotEmpty>
+            <isNotEmpty  property="drew_num">
+                 drew_num=drew_num + #drew_num# 
+            </isNotEmpty>
+            <isNotEmpty  property="product_num">
+                 product_num=product_num + #product_num# 
+            </isNotEmpty>
+        </dynamic>
+        where ord_seq_no = #order_id# 
+        <dynamic >
+            <isNotEmpty prepend="and"  property="waist">
+                 waist = #waist# 
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="country">
+                 country = #country# 
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="color">
+                 color = #color# 
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="in_length">
+                 in_length = #in_length# 
+            </isNotEmpty>
+        </dynamic> 
+    </update>
+     <update id="updateOrdSizeInfoStatue" parameterClass="dto">
+        update ord_size_info set statue = '0' 
+        where seq_no = #seq_no#
+    </update>
+	<!-- 尺寸汇总结束 -->
+	<!-- 同步吊挂信息报表 -->
+	<!-- 同步报表 -->
+	<insert id="sysHungProgressInfoByDate" parameterClass="dto">
+		merge into HUNG_PROGRESS_LIST a using  (select '1' from dual) t  on (
+		a.work_date=to_char(#workdate#,'yyyy-mm-dd') and a.team=to_char(#team#)  and a.style_no=#style_no# 
+		)
+		when matched then 
+		update 
+		<dynamic prepend="set">
+			<isNotEmpty prepend="," property="work_date">
+				edt_date=to_char(#workdate#,'yyyy-mm-dd') 
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="amount">
+				work_amount=to_char(#amount#) 
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="member_inline">
+				MEMBER_INLINE=to_char(#member_inline#)
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="area">
+				area=#area#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="factory">
+				factory=#factory#
+			</isNotEmpty>
+		</dynamic>
+		when not matched then 
+		insert 
+		(SEQ_NO,BRAND,FACTORY,AREA,STYLE,STYLE_NO,TEAM,MEMBER_OUTLINE,MEMBER_INLINE,LEADER,WORK_TIME,WORK_AMOUNT,WORK_PRICE,WORK_DATE,OPR_DATE,OPR_ID,STATUE)  
+		values 
+		(seq_hung_progress_seq.nextVal,#brand#,#factory#,#area#,#style#,#style_no#,to_char(#team#),#member_outline#,to_char(#member_inline#),#leader#,#work_time#,to_char(#amount#),#work_price#,to_char(#workdate#,'yyyy-mm-dd'),#cur_date#,'auto_sys',0)
+	</insert>
+	
+</sqlMap>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="
+	http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+	http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-2.5.xsd
+	http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-2.5.xsd">
+	
+	<!-- 导入数据访问对象 -->
+    <!-- weblogic 连接池 -->
+	<!--<import resource="classpath:config/global.dao.connpool.xml" />-->
+    <!-- jdbc -->
+	<import resource="classpath:config/global.dao.jdbc.xml" />
+	<!-- 导入业务处理对象.权限参考模型 -->
+	<import resource="classpath:config/sys/sys.service.xml" />
+	<!-- 导入SpringBean切面监控 -->
+	<import resource="classpath:config/global.monitor.xml" />
+	<!-- 导入rfid基本服务 -->
+	<import resource="classpath:config/rfid/rfid.service.xml" />
+    <!--定时处理任务-->
+    <import resource="classpath:config/quartz/quartz.service.xml" />
+    <!--api-->
+    <import resource="classpath:config/api/api.service.xml" />
+    <!--may编写-->
+    <import resource="classpath:config/may/may.service.xml" />
+</beans>

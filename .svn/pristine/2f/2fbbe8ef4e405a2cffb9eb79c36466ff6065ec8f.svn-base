@@ -1,0 +1,2 @@
+<%--<OBJECT id="OneCard" align="CENTER" WIDTH=0 HEIGHT=0 codeBase="${pageContext.request.contextPath}/ocx/OneCard.CAB#version=1,0,0,12" classid="CLSID:17047FDC-0E57-43F8-B64A-2604E2C52E38" ></OBJECT>--%>
+<OBJECT id="OneCard" align="CENTER" WIDTH=0 HEIGHT=0 codeBase="${pageContext.request.contextPath}/ocx/IccM1.CAB#version=1,0,0,9" classid="clsid:F964CBEA-CC0A-4C47-B9B0-1FF25B1954CF" ></OBJECT>

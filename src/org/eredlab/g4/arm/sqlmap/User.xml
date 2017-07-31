@@ -1,0 +1,533 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<!-- 用户管理与授权手工映射SQL语句 -->
+<sqlMap>
+	<typeAlias alias="dto" type="org.eredlab.g4.ccl.datastructure.impl.BaseDto"/>
+	
+	<!-- 用户管理与授权-用户列表 -->
+	<select id="queryUsersForManage" parameterClass="map" resultClass="dto" remapResults="true">
+		SELECT a.userid, a.username, a.deptid, a.ACCOUNT, a.usertype,a.per_no,
+		(SELECT name  FROM sys_grps_info WHERE grp_id = a.grp_id) AS grpname,
+		(SELECT roleid FROM EAUSERAUTHORIZE WHERE userid = a.userid) AS roleid,
+		(SELECT rolename FROM EAROLE WHERE
+            roleid=(SELECT roleid FROM EAUSERAUTHORIZE WHERE userid = a.userid)) AS rolename,
+		(SELECT duty_name  FROM DUTY_GRPS_INFO WHERE duty_id = a.duty and grp_id=a.grp_id) AS duty_name,
+		a.crd_type as crdtype, a.sex, a.LOCKED, a.remark, a.id_crd,a.tmp_crd,a.birthday,a.nation,a.nat_plc,
+        a.duty,a.tech_post,a.wedlock,a.post_code,a.address, a.email,a.tel_no,a.mbl_no,a.carrier,a.vir_no,
+        a.bank_no,a.grp_id as grp_city,a.state,a.is_audit,b.name as managegrpname,b.apps,c.deptname AS deptname,
+        d.rolename as datarolename,d.roleid as dataroleid,
+        case when e.num is null then 0 else e.num end as userperm
+		FROM eauser a
+        left join (select a.userid,a.roleid,b.rolename from eauserrolemap a
+            left join eadatarole b on a.roleid = b.roleid )d on a.userid = d.userid
+        left join sys_grps_info b on a.deptid = b.match_deptid
+        left join eadept c on a.deptid = c.deptid
+        left join (select userid,count(*) as num from eauserdataauthorize group by userid) e
+            on a.userid  = e.userid WHERE a.usertype != '9'  and a.userid!=#localuserid#
+		<dynamic>
+			<isNotEmpty prepend="AND" property="userid"> 
+				a.userid like '$userid$%'
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="deptid"> 
+				a.deptid like '$deptid$%'
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="rolename"> 
+				a.username like '%$username$%'
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="queryParam"> 
+				a.username like '%$queryParam$%' 
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="grp_id_pattern"> 
+				a.grp_id like '$grp_id_pattern$%' 
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="per_no"> 
+				a.per_no = #per_no#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="usertype">
+				a.usertype=#usertype#               
+			</isNotEmpty>
+		</dynamic>
+        order by a.userid
+	</select>
+	
+	<!-- 用户管理与授权-用户列表 -->
+	<select id="queryUsersForManageForPageCount" parameterClass="map" resultClass="java.lang.Integer">
+		SELECT count(*) as count
+		  FROM eauser a WHERE a.grp_id like '$grp_id_pattern$%' and   a.userid!=#localuserid# and a.state !='1'
+		<dynamic>
+			<isNotEmpty prepend="AND" property="userid"> 
+									a.userid like '$userid$%'
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="deptid"> 
+									a.deptid like '$deptid$%'
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="rolename"> 
+									a.username like '%$username$%'
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="queryParam"> 
+				                    a.username like '%$queryParam$%' 
+			</isNotEmpty>
+            <isNotEmpty prepend="AND" property="usertype"> 
+				                    a.usertype=#usertype#
+			</isNotEmpty>
+		</dynamic>
+		and a.usertype != '9' 
+	</select>
+	
+	<!-- 插入一条用户表记录 -->
+	<insert id="saveUserItem" parameterClass="dto">
+		INSERT INTO EAUSER (
+            userid, username, account, password, sex, deptid, locked, remark, usertype,id_crd,
+            tmp_crd,birthday,nation,nat_plc,duty,tech_post,wedlock,post_code,address,email,tel_no,
+            mbl_no,carrier,grp_id,opn_opr_id,opn_date,state,vir_no,bank_no,crd_type,per_no,is_audit,grouptype)
+		VALUES
+            (#userid#,#username#, #account#,#password#,#sex#,#deptid#,#locked#,#remark#, #usertype#,#id_crd#,#tmp_crd#,
+            #birthday#,#nation#,#nat_plc#,#duty#,#tech_post#,#wedlock#,#post_code#,#address#,#email#,#tel_no#,#mbl_no#,
+            #carrier#,#grp_id#,#opn_opr_id#,#opn_date#,#state#,#vir_no#,#bank_no#,#crdtype#,#per_no#,#is_audit#,#grouptype#)
+	</insert>
+    
+	<!-- 插入用户记录 -->
+	<insert id="importUserInfo4User" parameterClass="dto">
+		INSERT INTO EAUSER (
+		   userid,account, username,password,deptid,sex,grp_id,nation,id_crd,mbl_no,carrier,state,duty,usertype,crd_type,per_no) 
+		VALUES (#userid#,#account#, #username#,#password#,#deptid#,#sex#,#grp_id#,'1',#id_crd#,#mbl_no#,#carrier#,'2',#duty#,#usertype#,#crd_type#,#per_no#)
+	</insert>
+	
+	<!-- 保存用户附属信息 -->
+	<insert id="saveEausersubinfoItem" parameterClass="dto">
+		INSERT INTO eausersubinfo (
+		   userid, theme) 
+		VALUES ( #userid#, #theme#)
+	</insert>
+	
+	<!-- 删除用户表  -->
+	<delete id="deleteEauserInUserManage" parameterClass="map" >
+		DELETE FROM eauser
+		      WHERE userid = #userid#
+	</delete>
+	
+	<!-- 删除人员授权表  -->
+	<delete id="deleteEauserauthorizeInUserManage" parameterClass="map" >
+		DELETE FROM eauserauthorize
+		      WHERE userid = #userid#
+	</delete>
+	
+	<!-- 根据主键更新用户 -->
+	<update id="updateUserItem" parameterClass="dto">
+         UPDATE eauser
+		<dynamic prepend="SET"> 
+			<isNotEmpty prepend="," property="userid">
+	         userid = #userid#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="username">
+	         username = #username#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="account">
+	         account = #account#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="per_no">
+	         per_no = #per_no#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="password">
+	         password = #password#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="sex">
+	         sex = #sex#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="deptid">
+	         deptid = #deptid#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="locked">
+	         locked = #locked#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="remark">
+	         remark = #remark#
+			</isNotEmpty>
+<!--			<isNotEmpty prepend="," property="usertype">-->
+<!--	         usertype = #usertype#-->
+<!--			</isNotEmpty>							-->
+			<isNotEmpty prepend="," property="id_crd">
+	         id_crd = #id_crd#
+			</isNotEmpty>							
+			<isNotEmpty prepend="," property="tmp_crd">
+	         tmp_crd = #tmp_crd#
+			</isNotEmpty>							
+			<isNotEmpty prepend="," property="birthday">
+	         birthday = #birthday#
+			</isNotEmpty>							
+			<isNotEmpty prepend="," property="nation">
+	         nation = #nation#
+			</isNotEmpty>							
+			<isNotEmpty prepend="," property="nat_plc">
+	         nat_plc = #nat_plc#
+			</isNotEmpty>							
+			<isNotEmpty prepend="," property="duty">
+	         duty = #duty#
+			</isNotEmpty>							
+			<isNotNull prepend="," property="tech_post">
+	         tech_post = #tech_post#
+			</isNotNull>							
+			<isNotNull prepend="," property="wedlock">
+	         wedlock = #wedlock#
+			</isNotNull>							
+			<isNotEmpty prepend="," property="post_code">
+	         post_code = #post_code#
+			</isNotEmpty>							
+			<isNotEmpty prepend="," property="address">
+	         address = #address#
+			</isNotEmpty>							
+			<isNotEmpty prepend="," property="email">
+	         email = #email#
+			</isNotEmpty>							
+			<isNotEmpty prepend="," property="tel_no">
+	         tel_no = #tel_no#
+			</isNotEmpty>							
+			<isNotEmpty prepend="," property="mbl_no">
+	         mbl_no = #mbl_no#
+			</isNotEmpty>							
+			<isNotEmpty prepend="," property="carrier">
+	         carrier = #carrier#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="bank_no">
+	         bank_no = #bank_no#
+			</isNotEmpty>								
+			<isNotEmpty prepend="," property="crdtype">
+	         crd_type = #crdtype#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="is_audit">
+	         is_audit = #is_audit#
+			</isNotEmpty>								
+		</dynamic> 
+	        WHERE userid = #userid#    
+	</update>
+	
+	<!-- 根据主键更新用户 -->
+	<update id="updateEauser4State" parameterClass="dto">
+         UPDATE eauser SET state='1'  WHERE userid = #userid#    
+    </update>
+	
+	<!-- 根据用户删除角色用户关联信息  -->
+	<delete id="deleteEaUserAuthorizeByUserId" parameterClass="map" >
+		DELETE FROM eauserauthorize
+		      WHERE userid = #userid#
+	</delete>
+	
+	<!-- 插入一条用户角色关联记录 -->
+	<insert id="saveSelectedRole" parameterClass="dto">
+		INSERT INTO EAUSERAUTHORIZE (
+		   userid, roleid, authorizeid) 
+		VALUES ( #userid#, #roleid#, #authorizeid#)
+	</insert>
+	
+	<!-- 根据用户删除人员菜单关联信息  -->
+	<delete id="deleteEausermenumapByUserId" parameterClass="map" >
+		DELETE FROM eausermenumap
+		      WHERE userid = #userid#
+	</delete>
+	
+	<!-- 根据用户删除人员附属信息  -->
+	<delete id="deleteEausersubinfoByUserid" parameterClass="map" >
+		DELETE FROM eausersubinfo
+		      WHERE userid = #userid#
+	</delete>
+	
+	<!-- 插入一条用户菜单关联记录 -->
+	<insert id="saveSelectedMenu" parameterClass="dto">
+		INSERT INTO eausermenumap (
+		   userid, menuid, authorizeid, 
+		   authorizelevel) 
+		VALUES ( #userid#, #menuid#, #authorizeid#, #authorizelevel#)
+	</insert>
+	
+	<!-- 删除人员菜单关联  -->
+	<delete id="deleteEausermenumapByUserid" parameterClass="map" >
+		DELETE 
+		  FROM eausermenumap 
+		 WHERE userid = #userid#
+	</delete>
+	
+	<!-- 根据登录账户查询人员信息  -->
+	<select id="checkAccount" parameterClass="map" resultClass="java.lang.Integer">
+		SELECT count(*) FROM eauser where grp_id = #grp_id# and account = #account#
+	</select>
+	
+	<!-- 从企业信息表中获得per_no -->
+	<select id="getPerIdFromSysGrp" parameterClass="map" resultClass="java.lang.Integer">
+		SELECT per_id_seq FROM sys_grps_info where grp_id = #grp_id#
+	</select>
+
+	<!-- 插入一条用户菜单关联记录 -->
+	<update id="updatePerIdSeq" parameterClass="dto">
+         UPDATE sys_grps_info SET per_id_seq=(#per_id_seq#)  WHERE grp_id = #grp_id#    
+    </update>
+	
+	<!-- 根据per_no查询个人信息  -->
+    <select id="getUserInfoByPerNo" parameterClass="map" resultClass="dto">
+        SELECT userid, username, account, 
+           password, sex, deptid, 
+           locked, remark, usertype,grp_id,mbl_no
+         FROM EAUSER  WHERE grp_id= #grp_id# and per_no = #per_no# and state!='1'
+    </select>
+	
+
+    
+    <!-- 查询个人信息（用户信息导入）  -->
+    <select id="getUserInfo4Import" parameterClass="map" resultClass="dto">
+        SELECT per_no
+         FROM EAUSER  WHERE grp_id = #grp_id# and per_no = #per_no# and state !='1'
+    </select>
+    
+    <select id="getMenuId4Init" parameterClass="String" resultClass="String">
+        SELECT menuid
+         FROM eamenu  WHERE menuid like '01$menu_pattern$%' order by menuid
+    </select>
+    
+      <select id="getDeptByGrp" parameterClass="map" resultClass="java.lang.String">
+        SELECT deptid
+         FROM EADEPT  WHERE grp_id = #grp_id# and parentid='001'
+    </select>
+    
+    <!-- 查询个人信息（用户导出） -->
+    <select id="queryUsersForExcelOut" parameterClass="map" resultClass="dto" remapResults="true">
+		  SELECT a.userid, a.username, a.deptid, a.ACCOUNT,a.per_no,
+		        c.deptname AS deptname,
+		        d.duty_name AS duty_name,
+                e.crd_name AS crdtype_name,
+                a.crd_type as crdtype,
+		         case a.sex when '1' then'男'  when '2' then ' 女' else '未知' end as sex, a.LOCKED, a.remark,
+                a.id_crd,a.mbl_no,a.OPN_DATE,a.crd_no,
+                case a.state when '0' then'正常' when '1' then ' 注销' else '预开户' end as state,
+                f.ISSU_DATE,f.VLD_DATE
+		  FROM eauser a 
+		  left join (SELECT deptname,grp_id,deptid FROM eadept) c on a.grp_id=c.grp_id and a.deptid= c.deptid
+		  left join (SELECT duty_name,grp_id,duty_id FROM DUTY_GRPS_INFO) d on a.grp_id=d.grp_id and d.duty_id=a.duty
+		  left join (SELECT crd_name,crd_kind,grp_id FROM crd_type_info) e on a.grp_id=e.grp_id and a.crd_type=e.crd_kind
+		  left join crd_issu_list f on a.grp_id=f.grp_id and a.crd_no=f.crd_no
+		  where a.grp_id = '$grp_id_pattern$' and a.state!='1'
+		<dynamic>
+			<isNotEmpty prepend="AND" property="deptid"> 
+									a.deptid like '$deptid$%'
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="userid"> 
+									a.userid like '$userid$%'
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="queryParam"> 
+				                    a.username like '%$queryParam$%' 
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="usertype">
+				                    a.usertype=#usertype#
+			</isNotEmpty>
+		</dynamic>
+		order by a.deptid
+	</select>
+	
+	
+	 <!-- 管理员联系方式信息  -->
+    <select id="queryUserBy" parameterClass="map" resultClass="dto">
+        SELECT mbl_no,username
+         FROM EAUSER  WHERE usertype != '9' and state='0'
+         <dynamic>
+			<isNotEmpty  prepend="AND"  property="grp_id_pattern"> 
+				                    grp_id like '$grp_id_pattern$%' 
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="usertype">
+				                    usertype=#usertype#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="account">
+				                    account=#account#
+			</isNotEmpty>
+		</dynamic>
+    </select>
+    
+    <!-- 根据卡号查询用户信息  -->
+    <select id="queryUserInfoByCard" parameterClass="map" resultClass="dto">
+        SELECT userid, username, deptid, ACCOUNT, usertype,per_no, crd_type sex, crd_no,LOCKED,remark,
+        id_crd,tmp_crd,birthday,nation,nat_plc,duty,tech_post,wedlock,post_code,address,email,tel_no,
+        mbl_no,carrier,vir_no,bank_no,grp_id as grp_city,state FROM EAUSER  WHERE crd_no=#card_no#
+    </select>
+    
+    	<!-- 查询人员信息 -->
+	<select id="getUserInfo4Temp" parameterClass="map" resultClass="dto" remapResults="true">
+		select a.per_no,a.account,a.deptid,a.username,a.crd_no,a.bank_id,a.mbl_no,b.deptname,a.grp_id ,
+		a.id_crd,a.is_adult,
+        fn_split_value(a.deptnames,',',1) as deptname1,fn_split_value(a.deptnames,',',2) as deptname2,
+        fn_split_value(a.deptnames,',',3) as deptname3,fn_split_value(a.deptnames,',',4) as deptname4
+        from (select a.*,getdeptname(a.deptid) as deptnames from eauser a) a
+		left join eadept b  on a.deptid = b.deptid  where a.grp_id =#grp_id# and a.usertype='2'  
+		<dynamic>
+			<isNotEmpty prepend="and" property="perno">
+				a.per_no=#perno#  
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="username">
+				a.username=#username#  
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="mblno">
+				a.mbl_no=#mblno#  
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="deptid">
+				a.deptid like '$deptid$%' 
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="id_crd">
+				a.id_crd = '$id_crd$' 
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="crdNoIsNull">
+				a.crd_no is not null
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="vstDept">
+				b.customid is null
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="userState">
+				a.state in $userState$
+			</isNotEmpty>
+		</dynamic>
+		order by 
+		<isEmpty prepend=" " property="sort">
+				a.deptid,per_no
+		</isEmpty>
+		<isNotEmpty prepend=" " property="sort">
+				$sort$
+		</isNotEmpty>
+		<isNotEmpty prepend=" " property="dir">
+				$dir$
+		</isNotEmpty>
+	</select>
+	
+	<!-- 查询人员信息人员总数 -->
+	<select id="getUserInfo4TempPageCount" parameterClass="map" resultClass="Integer">
+		select count(*) 
+		from eauser a left join eadept b  on a.deptid = b.deptid  where a.grp_id =#grp_id# and a.usertype='2'   
+		<dynamic>
+			<isNotEmpty prepend="and" property="perno">
+				a.per_no=#perno#  
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="username">
+				a.username=#username#  
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="mblno">
+				a.mbl_no=#mblno#  
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="deptid">
+				a.deptid like '$deptid$%' 
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="id_crd">
+				a.id_crd = '$id_crd$' 
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="crdNoIsNull">
+				a.crd_no is not null
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="vstDept">
+				b.customid is null
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="userState">
+				a.state in $userState$
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	
+	<select id="queryDeptTree4Temp" parameterClass="map"
+        resultClass="dto">
+        SELECT
+        deptid as id, deptname as text, parentid,leaf
+        FROM EADEPT ed where   customid is null
+        <dynamic >
+            <isNotEmpty prepend="AND" property="grp_id">
+                ed.grp_id = '$grp_id$'
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="deptid">
+                ed.deptid = #deptid#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="parentid">
+                ed.parentid = #parentid#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="deptstate">
+                ed.deptstate = #deptstate#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="deptname">
+                ed.deptname like '%$deptname$%'
+            </isNotEmpty>
+        </dynamic>
+        order by deptid
+    </select>
+
+    <select id="queryEaUserAuthorize" parameterClass="map" resultClass="dto" remapResults="true">
+        select a.userid,a.account,a.per_no,a.username,a.deptid,b.roleid,b.rolename,c.deptname,
+        d.roleid as dataroleid,d.rolename as datarolename,
+        case when e.num is null then 0 else e.num end as userperm
+        from eauser a
+        left join (select a.userid,a.roleid,b.rolename from eauserauthorize a
+            left join earole b on a.roleid = b.roleid )b on a.userid = b.userid
+        left join eadept c on a.deptid = c.deptid
+        left join (select a.userid,a.roleid,b.rolename from eauserrolemap a
+            left join eadatarole b on a.roleid = b.roleid )d on a.userid = d.userid
+        left join (select userid,count(*) as num from eauserdataauthorize group by userid) e
+            on a.userid  = e.userid
+        where a.grp_id =#grp_id# and a.usertype = '2' and a.state !='1'
+        <dynamic>
+            <isNotEmpty prepend="and" property="per_no">
+                a.per_no=#per_no#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="username">
+                a.username like '%$username$%'
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="deptid">
+                a.deptid like '$deptid$%'
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="id_crd">
+                a.id_crd = '$id_crd$'
+            </isNotEmpty>
+        </dynamic>
+        order by a.account
+    </select>
+
+    <!--获取默认菜单权限的角色编号-->
+    <select id="getEaRoleIdByNotes" parameterClass="map" resultClass="java.lang.String">
+        select roleid from earole where notes =#notes#
+    </select>
+
+    <!--获取员工菜单权限-->
+    <select id="getMenuIdByUserid" parameterClass="java.lang.String" resultClass="dto">
+        select distinct a.menuid,b.menuname,b.parentid,b.iconcls,b.expanded,b.request,
+        b.leaf,b.sortno,b.remark,b.icon,b.menutype,b.ycflag
+        from eausermenumap a left join eamenu b on a.menuid = b.menuid
+        where userid=#userid#
+    </select>
+
+    <!-- 查询分厂管理员信息 -->
+    <select id="queryGrpUserList" parameterClass="map" resultClass="dto">
+        SELECT a.userid, a.username, a.deptid, a.ACCOUNT, a.usertype,a.per_no,
+         a.sex, a.LOCKED, a.remark, a.id_crd,a.tmp_crd,a.birthday,a.nation,a.nat_plc,
+        a.duty, a.email,a.tel_no,a.mbl_no,a.state,d.rolename as datarolename,d.roleid as dataroleid,
+        case when e.num is null then 0 else e.num end as userperm,b.
+        FROM eauser a
+        left join (select a.userid,a.roleid,b.rolename from eauserrolemap a
+            left join eadatarole b on a.roleid = b.roleid )d on a.userid = d.userid
+
+        left join (select userid,count(*) as num from eauserdataauthorize group by userid) e
+            on a.userid  = e.userid WHERE a.usertype != '9'  and a.userid!=#localuserid#
+        <dynamic>
+            <isNotEmpty prepend="AND" property="userid">
+                a.userid like '$userid$%'
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="deptid">
+                a.deptid like '$deptid$%'
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="rolename">
+                a.username like '%$username$%'
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="queryParam">
+                a.username like '%$queryParam$%'
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="grp_id_pattern">
+                a.grp_id like '$grp_id_pattern$%'
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="per_no">
+                a.per_no = #per_no#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="usertype">
+                a.usertype=#usertype#
+            </isNotEmpty>
+        </dynamic>
+        order by a.userid
+    </select>
+    
+</sqlMap>

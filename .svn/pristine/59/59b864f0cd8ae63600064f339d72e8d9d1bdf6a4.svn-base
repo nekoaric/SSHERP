@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<!-- 资源模型手工映射SQL语句 -->
+<sqlMap>
+	<typeAlias alias="dto"
+		type="org.eredlab.g4.ccl.datastructure.impl.BaseDto" />
+	<!--查询客户信息 -->
+	<select id="queryBasCustListInfo" parameterClass="map" resultClass="dto" remapResults="true">
+		SELECT cust_id,cust_name,brand_no,address,tel_no,fax,web_site,Email,opn_bank,bank_account,tax_id,
+		lnk_name,lnk_tel_no,msn,QQ,country,alias,
+		case when state ='0' then '正常' else '注销' end as state
+		from BAS_CUST_LIST
+		where state ='0'
+		<dynamic>
+			<isNotEmpty prepend="AND" property="cust_id">
+				cust_id = #cust_id#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="cust_name">
+				(cust_name = #cust_name# or instr(alias,#cust_name#)!=0)
+			</isNotEmpty>
+		</dynamic>
+		order by cust_id
+	</select>
+
+    <select id="queryBasCustListCountByCustName" parameterClass="map" resultClass="Integer">
+		SELECT count(*)
+		from BAS_CUST_LIST
+		where state ='0'
+		<dynamic>
+		    <isNotEmpty prepend="AND" property="cust_id">
+				cust_id != #cust_id#
+		    </isNotEmpty>
+		    <isNotEmpty prepend="AND" property="cust_name">
+				(cust_name = #cust_name# or instr(alias,#cust_name#)!=0)
+		    </isNotEmpty>
+		</dynamic>
+    </select>
+
+	<!-- 插入一条客户信息 -->
+	<insert id="insertCustBasList" parameterClass="dto">
+		INSERT INTO
+		BAS_CUST_LIST (cust_id,cust_name,brand_no,address,tel_no,fax,web_site,
+		Email,opn_bank,bank_account,tax_id,lnk_name,lnk_tel_no,msn,
+		QQ,country,alias,state)
+		VALUES
+		(#cust_id#,#cust_name#,#brand_no#,#address#,#tel_no#,#fax#,#web_site#,
+		#email#,#opn_bank#,#bank_account#,#tax_id#,#lnk_name#,#lnk_tel_no#,#msn#,
+		#qq#,#country#,#alias#,'0')
+	</insert>
+
+	<!-- 删除客户信息 -->
+	<update id="deleteCustBasList" parameterClass="dto">
+		UPDATE BAS_CUST_LIST
+		<dynamic prepend="SET">
+			<isNotEmpty prepend="," property="state">
+				state= #state#
+			</isNotEmpty>
+		</dynamic>
+		where cust_id=#cust_id#
+	</update>
+
+	<!-- 根据主键更新客户信息表 -->
+	<update id="updateCustBasList" parameterClass="dto">
+		UPDATE BAS_CUST_LIST set
+		cust_name= #cust_name#,address=#address#,tel_no= #tel_no#,
+		FAX= #fax#,web_site= #web_site#,Email= #email#,opn_bank= #opn_bank#,bank_account= #bank_account#,
+		tax_id= #tax_id#,state= #state#,lnk_name= #lnk_name#,lnk_tel_no= #lnk_tel_no#,msn= #msn#,
+		QQ= #qq#,country= #country#,brand_no =#brand_no#,alias =#alias#
+		where cust_id=#cust_id#
+	</update>
+	
+		<!-- 获取客户最大序号信息 -->
+	<select id="getMaxCustid" parameterClass="map" resultClass="java.lang.Integer">
+		select max(cust_id) from BAS_CUST_LIST
+	</select>
+	
+	<!--查询客户常用信息 -->
+	<select id="queryCustBasInfo" parameterClass="map" resultClass="dto">
+		SELECT a.seq_no,a.cust_id,b.cust_name,a.brand,a.classify,a.style,a.cloth_size,a.state
+		FROM bas_cust_info a
+		left join (select cust_name,cust_id FROM BAS_CUST_LIST) b on a.cust_id =b.cust_id
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="cust_id">
+				a.cust_id = #cust_id#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="cust_name">
+				b.cust_name = #cust_name#
+			</isNotEmpty>
+		</dynamic>
+		order by a.cust_id
+	</select>
+
+	<select id="queryCustBasInfoCount" parameterClass="map" resultClass="java.lang.Integer">
+		SELECT count(*) FROM BAS_CUST_INFO a
+		left join (select cust_name,cust_id FROM BAS_CUST_LIST) b on a.cust_id =b.cust_id
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="cust_id">
+				a.cust_id = #cust_id#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="cust_name">
+				b.cust_name = #cust_name#
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	
+	<!--下拉框查询客户信息 -->
+	<select id="getCustIDCombox" parameterClass="map"
+		resultClass="dto">
+		SELECT DISTINCT cust_id as value,cust_name as text
+		from BAS_CUST_LIST
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="cust_id">
+				cust_id = #cust_id#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="cust_name">
+				cust_name = #cust_name#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="state">
+				state = #state#
+			</isNotEmpty>
+		</dynamic>
+		order by cust_id
+	</select>
+	
+		<!-- 获取客户常用信息最大序号信息 -->
+	<select id="getCustBas4SeqNo" parameterClass="map" resultClass="java.lang.Integer">
+		select max(seq_no) from BAS_CUST_INFO
+	</select>
+
+	<!-- 插入一条客户常用信息 -->
+	<insert id="insertCustBasInfo" parameterClass="dto">
+		INSERT INTO
+		BAS_CUST_INFO (seq_no,cust_id,brand,classify,style,cloth_size,state)
+		VALUES (#seq_no#,#cust_id#,#brand#,#classify#,#style#,#cloth_size#,#state#)
+	</insert>
+
+	<!-- 删除客户常用信息 -->
+	<update id="deleteCustBasInfo" parameterClass="dto">
+		UPDATE BAS_CUST_INFO
+		<dynamic prepend="SET">
+			<isNotEmpty prepend="," property="state">
+				state= #state#
+			</isNotEmpty>
+		</dynamic>
+		where seq_no=#seq_no#
+	</update>
+	<!-- 根据主键更新客户常用信息表 -->
+	<update id="updateCustBasInfo" parameterClass="dto">
+		UPDATE BAS_CUST_INFO
+		<dynamic prepend="SET">
+			<isNotEmpty prepend="," property="brand">
+				brand= #brand#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="cust_id">
+				cust_id= #cust_id#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="classify">
+				classify=#classify#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="style">
+				style= #style#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="cloth_size">
+				cloth_size= #cloth_size#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="state">
+				state= #state#
+			</isNotEmpty>
+		</dynamic>
+		where seq_no=#seq_no#
+	</update>
+
+    <!--查询客户信息 -->
+    <select id="getCustBasInfoTree" parameterClass="map" resultClass="dto" remapResults="true">
+		SELECT cust_id,cust_name,brand_no,address,tel_no,fax,web_site,Email,opn_bank,bank_account,tax_id,
+		lnk_name,lnk_tel_no,msn,QQ,country,cust_id as id,cust_name as text,alias,
+		case when state ='0' then '正常' else '注销' end as state
+		from BAS_CUST_LIST 
+		where state ='0'
+		<dynamic> 
+			<isNotEmpty prepend="AND" property="orderstatus">
+	        	cust_id in (select a.cust_id from ord_bas_info a left join prod_ord_info b on a.order_id=b.ord_seq_no where b.prodstatus=#orderstatus#)
+	        </isNotEmpty>
+	        <isNotEmpty prepend="AND" property="ismyorder">
+	        	cust_id  in (select a.cust_id from ord_bas_info a left join order_operator b on a.order_id=b.ord_seq_no where b.account =#account#)
+	        </isNotEmpty>
+			<isNotEmpty prepend="and" property="isOnlyRFID">
+			 cust_id in
+				(select a.cust_id
+				from BAS_CUST_LIST a
+				left join ORD_BAS_INFO b on a.cust_id = b.cust_id
+				where b.order_id in (select distinct ord_seq_no 
+			   			from prod_ord_info where prod_ord_seq in(
+			   				select prod_ord_seq from epc_day_list))
+   				)
+		   </isNotEmpty>
+			<isNotEmpty prepend="AND" property="order_id">
+			cust_id in
+				(select a.cust_id
+				from BAS_CUST_LIST a
+				left join ORD_BAS_INFO b on a.cust_id = b.cust_id
+				where b.order_id like '%$order_id$%' and b.state != '1'
+				)
+		    </isNotEmpty>    
+		    <isNotEmpty prepend="AND" property="cust_id">
+				cust_id = #cust_id#
+		    </isNotEmpty>
+		    <isNotEmpty prepend="AND" property="cust_name">
+				cust_name = #cust_name#
+		    </isNotEmpty>
+		    <isNotEmpty prepend="AND" property="country">
+				country = #country#
+		    </isNotEmpty>
+		    <isEmpty property="country">
+		    	<isNotEmpty prepend="AND" property="isArea">
+		    		country is null
+		    	</isNotEmpty>
+		    </isEmpty>
+		</dynamic>
+		order by cust_id
+    </select>
+
+    <!--查询客户信息    -->
+    <select id="getCountryInCustBasInfo" parameterClass="map" resultClass="dto">
+		SELECT country,country as text,'area'||country as id from BAS_CUST_LIST a
+		left join ORD_BAS_INFO b on a.cust_id=b.cust_id 
+		where country is not null
+		<isNotEmpty prepend="AND" property="orderstatus">
+			b.order_id in (select ord_seq_no from prod_ord_info where prodstatus=#orderstatus#)
+        </isNotEmpty>
+        <isNotEmpty prepend="AND" property="ismyorder">
+        	b.order_id in (select ord_seq_no from  order_operator where account =#account#)
+        </isNotEmpty>
+		<isNotEmpty prepend="AND" property="order_id">
+			b.order_id like '%$order_id$%'
+			and b.state != '1'
+	    </isNotEmpty>
+	   <isNotEmpty prepend="and" property="isOnlyRFID">
+	   		b.order_id in (select distinct ord_seq_no 
+	   				from prod_ord_info where prod_ord_seq in(
+	   					select prod_ord_seq from epc_day_list))
+	   </isNotEmpty>
+		group by country
+    </select>
+
+    <!--查询订单信息通过客户信息 -->
+    <select id="getOrdBasInfoByCustId" parameterClass="map" resultClass="dto" remapResults="true">
+		SELECT a.order_id as text,order_id as id ,b.num from ord_bas_info a
+		left join (select count(*) as num ,ord_seq_no from prod_ord_info group by ord_seq_no) b
+		on a.order_id = b.ord_seq_no
+		where a.cust_id = #cust_id# 
+		<isNotEmpty prepend="AND" property="orderstatus">
+        	a.order_id in (select ord_seq_no from prod_ord_info where prodstatus = #orderstatus#)
+        </isNotEmpty>
+        <isNotEmpty prepend="AND" property="ismyorder">
+        	a.order_id in (select ord_seq_no from  order_operator where account =#account#)
+        </isNotEmpty>
+		<isNotEmpty prepend="AND" property="order_id">
+				a.order_id like '%$order_id$%' and a.state != '1'
+		 </isNotEmpty>
+		<isNotEmpty prepend="and" property="isOnlyRFID">
+       		a.order_id in (select distinct ord_seq_no 
+   				from prod_ord_info where prod_ord_seq in(
+   					select prod_ord_seq from epc_day_list))
+		</isNotEmpty>
+    </select>
+
+    <!--查询订单信息通过客户信息 -->
+    <select id="getProdOrdInfoByOrdSeqNO" parameterClass="map" resultClass="dto">
+		SELECT a.prod_ord_seq as text,prod_ord_seq as id,b.value from prod_ord_info a
+			left join prod_sub_info b on a.prod_ord_seq = b.id
+		where a.ord_seq_no = #ord_seq_no#
+		<isNotEmpty prepend="AND" property="orderstatus">
+        	a.prodstatus = #orderstatus#
+        </isNotEmpty>
+        <isNotEmpty prepend="AND" property="ismyorder">
+        	a.ord_seq_no in (select ord_seq_no from  order_operator where account =#account#)
+        </isNotEmpty>
+		<isNotEmpty prepend="and" property="isOnlyRFID">
+			a.ord_seq_no in (select distinct ord_seq_no 
+				from prod_ord_info where prod_ord_seq in(
+					select prod_ord_seq from epc_day_list))
+		 </isNotEmpty>
+    </select>
+
+</sqlMap>

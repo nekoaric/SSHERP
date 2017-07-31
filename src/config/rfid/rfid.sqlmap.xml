@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMapConfig PUBLIC "-//iBATIS.com//DTD SQL Map Config 2.0//EN" "http://www.ibatis.com/dtd/sql-map-config-2.dtd">
+<sqlMapConfig>
+
+	<sqlMap resource="com/cnnct/rfid/sqlmap/DevTrmInfo.xml"/>
+    <!-- 订单管理  -->
+    <sqlMap resource="com/cnnct/rfid/sqlmap/OrdBasInfo.xml"/>
+
+    <sqlMap resource="com/cnnct/rfid/sqlmap/ProdOrdInfo.xml"/>
+    <sqlMap resource="com/cnnct/rfid/sqlmap/CustBasInfo.xml"/>
+
+    <sqlMap resource="com/cnnct/rfid/sqlmap/ClothBasInfo.xml"/>
+
+    <sqlMap resource="com/cnnct/rfid/sqlmap/EpcProdInfo.xml"/>
+    <sqlMap resource="com/cnnct/rfid/sqlmap/EpcBookList.xml"/>
+    <sqlMap resource="com/cnnct/rfid/sqlmap/EpcDayList.xml"/>
+    <sqlMap resource="com/cnnct/rfid/sqlmap/OrdDayList.xml"/>
+
+    <sqlMap resource="com/cnnct/rfid/sqlmap/ProdSureList.xml"/>
+	<sqlMap resource="com/cnnct/rfid/sqlmap/ProdBoxList.xml"/>
+    <sqlMap resource="com/cnnct/rfid/sqlmap/OrdScheInfo.xml"/>
+
+    <sqlMap resource="com/cnnct/rfid/sqlmap/DeptScheInfo.xml"/>
+	<sqlMap resource="com/cnnct/rfid/sqlmap/ExcelExportInfo.xml"/>
+	<sqlMap resource="com/cnnct/rfid/sqlmap/QAInfo.xml"></sqlMap>
+	
+    <!-- 完单报告 -->
+    <sqlMap resource="com/cnnct/rfid/sqlmap/OrderReportInfo.xml"></sqlMap>
+    <!-- 请求会话 -->
+    <sqlMap resource="com/cnnct/sys/sqlmap/SysSessionInfo.xml"></sqlMap>
+    <sqlMap resource="com/cnnct/loginMode2/sqlmap/loginMode2.xml"></sqlMap>
+    <sqlMap resource="com/cnnct/loginMode2/sqlmap/depotCheck.xml"></sqlMap>
+    <sqlMap resource="com/cnnct/rfid/sqlmap/ManageQC.xml"></sqlMap>
+    <!-- sales focus report -->
+    <sqlMap resource="com/cnnct/rfid/sqlmap/SalesFocusReport.xml"></sqlMap>
+    <!--  排数语句文件  -->
+    <sqlMap resource="com/cnnct/rfid/sqlmap/ArrangeInfo.xml"/>
+    <!-- 吊挂信息 -->
+    <sqlMap resource="com/cnnct/rfid/sqlmap/HungProgress.xml"/>
+</sqlMapConfig>

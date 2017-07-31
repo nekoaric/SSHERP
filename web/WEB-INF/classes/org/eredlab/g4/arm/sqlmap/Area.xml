@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<!-- 参数管理手工映射SQL语句 -->
+<sqlMap>
+	<typeAlias alias="dto" type="org.eredlab.g4.ccl.datastructure.impl.BaseDto"/>
+	<!-- 参数管理-查询参数列表 -->
+	<select id="queryAreaForManage" parameterClass="map" resultClass="dto">
+		SELECT   menuid, areaid,areaname,sortno,remark,menutype,leaf, parentid,
+		(SELECT areaname   FROM AREA_GRPS_INFO  WHERE menuid = a.parentid) AS parentname
+		    FROM AREA_GRPS_INFO a WHERE 1 = 1
+		   and  a.areaname  LIKE '%$queryParam$%' order by menuid
+	</select>
+	<select id="queryAreaForManageForPageCount" parameterClass="map" resultClass="java.lang.Integer">
+		SELECT count(*) as count
+		  FROM AREA_GRPS_INFO  a WHERE 1 = 1   and  a.areaname  LIKE '%$queryParam$%'
+	</select>
+	
+	<!-- 根据DTO查询菜单信息 -->
+	<select id="queryAreaItemsByDto" parameterClass="map" resultClass="dto">
+		SELECT 
+		   menuid as id, areaname as text, parentid,leaf
+		FROM AREA_GRPS_INFO 
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="menuid"> 
+				menuid = #menuid#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="parentid"> 
+				parentid = #parentid#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property=" areaname"> 
+				 areaname like '%'||# areaname#||'%'
+			</isNotEmpty>
+		</dynamic>
+		order by sortno asc
+	</select>
+	
+	<!-- 更新叶子节点 -->
+	<update id="updateLeafFieldInArea" parameterClass="dto">
+         UPDATE AREA_GRPS_INFO  SET leaf = #leaf# WHERE menuid = #menuid#  
+	</update>
+	
+		<!-- 插入一条菜单记录 -->
+	<insert id="saveAreaItem" parameterClass="dto">
+		INSERT INTO AREA_GRPS_INFO (
+		   menuid, areaid,areaname,sortno,remark,menutype,leaf, parentid) 
+		VALUES (#menuid#, #areaid#,#areaname#,#sortno#,#remark#,#menutype#,#leaf#, #parentid#)
+	</insert>
+    
+    
+	<!-- 删除菜单  -->
+	<delete id="deleteAreaItem" parameterClass="map" >
+		DELETE 
+		  FROM  AREA_GRPS_INFO
+		 WHERE menuid like '$menuid$%'
+	</delete>
+	
+	
+		<!-- 根据主键更新菜单 -->
+	<update id="updateAreaItem" parameterClass="dto">
+         UPDATE AREA_GRPS_INFO
+		<dynamic prepend="SET"> 
+		    <isNotEmpty prepend="," property="areaid">
+	         areaid = #areaid#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="areaname">
+	         areaname = #areaname#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="parentid">
+	         parentid = #parentid#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="leaf">
+	         leaf = #leaf#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="sortno">
+	         sortno = #sortno#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="remark">
+	         remark = #remark#
+			</isNotEmpty>										
+		</dynamic> 
+	        WHERE menuid = #menuid#    
+	</update>
+
+	<select id="changeLeafOfDeletedParent" parameterClass="map" resultClass="java.lang.Integer">
+		SELECT count(*) as count
+		  FROM AREA_GRPS_INFO  WHERE parentid = #menuid#
+	</select>
+	
+	<!-- 查询行业类别表 -->
+	<select id="queryAplCodeForManage" parameterClass="map" resultClass="dto">
+		select  apl_code,apl_name,remark,prv_code prvcode,city_code citycode,
+		 (select menuid   from 	AREA_GRPS_INFO  where areaid=prv_code)as prv_code,	
+		 (select menuid   from 	AREA_GRPS_INFO  where areaid=city_code)as city_code,
+        (select areaname from AREA_GRPS_INFO where areaid= prv_code) as province_name,
+        (select areaname from  AREA_GRPS_INFO where areaid=city_code)as city_name from APL_CODE_INFO where 1=1
+		   and  apl_name  LIKE '%$queryParam$%'
+	</select>
+	<select id="queryAplCodeForManageForPageCount" parameterClass="map" resultClass="java.lang.Integer">
+		SELECT count(*) as count
+		  FROM APL_CODE_INFO  a WHERE 1 = 1   and    a.apl_name  LIKE '%$queryParam$%'
+	</select>
+	
+		<!-- 插入一条行业类别记录 -->
+	<insert id="saveAplCodeItem"  parameterClass="dto">
+		INSERT INTO APL_CODE_INFO  (
+		   prv_code,city_code,apl_code,apl_name,remark) 
+		VALUES (#prv_code#,#city_code#,#apl_code#,#apl_name#,#remark#)
+	</insert>
+	
+	
+	   <!-- 行业类别记录删除 -->
+	<delete id="deleteAplCodeItem" parameterClass="map" >
+		DELETE 
+		  FROM APL_CODE_INFO
+		  WHERE 1=1 and apl_code= #apl_code# and prv_code=#prv_code# and city_code=#city_code#
+    </delete>
+	
+		<!-- 根据主键更新行业类别记录 -->
+	<update id="updateAplCodeItem" parameterClass="dto">
+         UPDATE APL_CODE_INFO 
+		<dynamic prepend="SET"> 
+		    <isNotEmpty prepend="," property="apl_name">
+	         apl_name = #apl_name#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="remark">
+	        remark= #remark#
+			</isNotEmpty>
+												
+		</dynamic> 
+	        WHERE 1=1 and apl_code= #apl_code# and prv_code=#prv_code# and city_code=#city_code#
+	</update>
+
+    
+     	<!-- 根据唯一索引进行唯一性校验 -->
+	<select id="checkAreaIdByIndex" parameterClass="map" resultClass="dto">
+		SELECT areaid
+		  FROM AREA_GRPS_INFO
+		 WHERE areaid= #areaid# 
+	</select>
+	
+	<select id="checkAplCodeByIndex" parameterClass="map" resultClass="dto">
+		SELECT apl_code
+		  FROM APL_CODE_INFO 
+		 WHERE apl_code= #apl_code# and prv_code=#prv_code# and city_code=#city_code#
+	</select>
+	
+	
+	<select id="getAplName" parameterClass="map" resultClass="java.lang.String">
+		SELECT apl_name
+		  FROM APL_CODE_INFO  WHERE apl_code= #apl_type# and prv_code=#prv_code# and city_code=#city_code#
+	</select>
+	
+	
+		<!-- 更新单位信息中的行业类别记录 -->
+	<update id="updateAplCodeSysGrp" parameterClass="dto">
+         UPDATE SYS_GRPS_INFO set apl_type=#apltype#
+	        WHERE 1=1  and apl_type= #apl_code# and prv_code=#prv_code# and city_code=#city_code#
+	</update>
+</sqlMap>

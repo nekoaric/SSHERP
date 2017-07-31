@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<!-- 权限模型标签数据访问手工映射SQL语句 -->
+<sqlMap>
+	<typeAlias alias="dto" type="org.eredlab.g4.ccl.datastructure.impl.BaseDto"/>
+	<typeAlias alias="menuVo" type="com.cnnct.sys.web.tag.vo.MenuVo"/>
+	<typeAlias alias="deptVo" type="com.cnnct.sys.web.tag.vo.DeptVo"/>
+	<typeAlias alias="userVo" type="com.cnnct.sys.web.tag.vo.UserVo"/>
+	<typeAlias alias="roleVo" type="com.cnnct.sys.web.tag.vo.RoleVo"/>
+	
+	<!-- 查询菜单树:角色授权 -->
+	<select id="queryMenusForRoleGrant" parameterClass="map" resultClass="menuVo">
+		SELECT menuid, menuname, parentid, leaf,menutype,sortno
+		  FROM eamenu ORDER BY sortno asc
+	</select>
+	
+	<!-- 查询菜单树:角色授权 chenhh修改-->
+	<select id="queryMenusForRoleGrant_NEW" parameterClass="map" resultClass="menuVo">
+		select distinct a.menuid, a.menuname, a.parentid, a.leaf,a.menutype,a.sortno 		  
+		from eamenu a ,eausermenumap b 
+		where b.authorizelevel = '1' 		            
+		and a.menuid = b.menuid and b.userid = #userid# 
+		order by a.sortno asc 
+	</select>
+	
+	
+	<select id="queryMenusForRoleGrant_XQ" parameterClass="map" resultClass="menuVo">
+		select distinct a.menuid, a.menuname, a.parentid, a.leaf,a.menutype,a.sortno 		  
+		from eamenu a ,EAROLEAUTHORIZE b where a.menuid = b.menuid and b.roleid in 
+		(select  roleid from EAUSERAUTHORIZE where userid= #userid# )
+		order by a.sortno asc 
+	</select>
+	
+	<!-- 查询某角色已授权菜单 -->
+	<select id="queryGrantedMenusByRoleId" parameterClass="map" resultClass="dto">
+		SELECT roleid, menuid, authorizelevel, authorizeid
+		  FROM earoleauthorize where roleid = #roleid#
+		<dynamic> 
+			<isNotEmpty prepend="and" property="authorizelevel">
+	          authorizelevel = #authorizelevel#
+			</isNotEmpty>									
+		</dynamic> 
+	</select>
+	
+	<!-- 查询部门树:选择人员 -->
+	<select id="queryDeptsForRoleGrant" parameterClass="map" resultClass="deptVo">
+		SELECT deptid, deptname, parentid
+		  FROM eadept where deptid like '$deptid$%'
+	</select>
+	
+	<!-- 查询部门下属人员:选择人员 -->
+	<select id="queryUsersForRoleGrant" parameterClass="map" resultClass="userVo">
+			SELECT userid,username,usertype,deptid,account, 'false' as checked
+			from eauser WHERE locked = '0' and deptid = #deptid#
+            and usertype &lt;&gt; '2'
+		<!-- <dynamic> 
+			<isNotEmpty prepend="and" property="usertype">
+	          usertype = #usertype#
+			</isNotEmpty>									
+		</dynamic>-->
+	</select>
+	
+	<!-- 查询某角色已关联用户 -->
+	<select id="queryGrantedUsersByRoleId" parameterClass="map" resultClass="dto">
+		SELECT userid, roleid, authorizeid
+		  FROM eauserauthorize where roleid = #roleid#
+	</select>
+	
+	<!-- 查询部门树:选择角色 -->
+	<select id="queryDeptsForUserGrant" parameterClass="map" resultClass="deptVo">
+		SELECT deptid, deptname, parentid
+		  FROM eadept where deptid like '$deptid$%'
+	</select>
+	
+	<!-- 查询部门下属角色:选择角色 -->
+	<select id="queryRolesForUserGrant" parameterClass="map" resultClass="roleVo">
+		SELECT 
+			roleid, rolename, deptid, roletype, locked
+		FROM EAROLE WHERE locked = '0' and deptid = #deptid#
+		<dynamic> 
+			<isNotEmpty prepend="and" property="roletype">
+	          roletype = #roletype#
+			</isNotEmpty>									
+		</dynamic> 
+	</select>
+	
+	<!-- 查询某人员已关联角色 -->
+	<select id="queryGrantedRolesByUserId" parameterClass="map" resultClass="dto">
+		SELECT userid, roleid, authorizeid
+		  FROM eauserauthorize where userid = #userid#
+	</select>
+	
+	<!-- 查询菜单树:人员授权 -->
+	<select id="queryMenusForUserGrant" parameterClass="map" resultClass="menuVo">
+		SELECT menuid, menuname, parentid, leaf,menutype,sortno
+		  FROM eamenu ORDER BY sortno asc
+	</select>
+	<!-- 查询某人员已授权菜单 -->
+	<select id="queryGrantedMenusByUserId" parameterClass="map" resultClass="dto">
+		SELECT userid, menuid, authorizeid, authorizelevel
+		  FROM eausermenumap WHERE userid=#userid# and authorizelevel = #authorizelevel#
+	</select>
+
+	<select id="getCardMenuTreeList" parameterClass="map" resultClass="menuVo">
+        select menu_id as menuid,menu_name as menuname,icon_cls as iconcls,parent_id as parentid,
+        request,sort_no as sortno,leaf,authorize_level as authorizelevel,
+        decode(length(menu_id),4,'true','false') as isRoot,
+        decode(expanded,'1','true','0','false',null) as expanded,
+        decode(icon,null,'tab_blank.png',icon) as icon
+        from (
+            select a.menu_id, b.menu_name, b.icon_cls,b.parent_id,b.request,b.sort_no, b.leaf,
+            b.expanded, a.authorize_level, b.icon, b.shortcut, b.width, b.height, b.scroll_bar
+            from sys_role_menuauth a, sys_menu_info b
+            where (a.authorize_level = '0' or a.authorize_level = '2')
+            and a.menu_id = b.menu_id
+            and a.role_id in (select role_id from sys_user_rolemap  where user_id = #user_id#)
+            union
+            (select a.menu_id , b.menu_name, b.icon_cls,b.parent_id,b.request,b.sort_no, b.leaf,
+            b.expanded,a.authorize_level, b.icon, b.shortcut, b.width, b.height, b.scroll_bar
+            from sys_user_menuauth a, sys_menu_info b
+            where (a.authorize_level = '0' or a.authorize_level = '2')
+            and a.menu_id = b.menu_id and a.user_id = #user_id#)
+            order by menu_id asc)
+        <dynamic prepend="where">
+            <isNotEmpty property="menu_id" prepend="and">
+                menu_id like '$menu_id$%'
+            </isNotEmpty>
+            <isNotEmpty property="isroot" prepend="and">
+                LENGTH(menu_id) = 4
+            </isNotEmpty>
+        </dynamic>
+        order by sortno
+	</select>
+
+	<!-- 查询人员附加信息 -->
+	<select id="getSysUserSubInfo" parameterClass="map" resultClass="dto">
+		SELECT theme,layout FROM sys_user_subinfo
+		  WHERE user_id = #user_id#
+	</select>
+	
+	<!-- 查询人员角色信息 -->
+	<select id="getRoleInfo" parameterClass="map" resultClass="dto">
+		SELECT * from sys_role_info
+        where role_id in(select role_id from sys_user_rolemap where user_id=#user_id#)
+	</select>
+
+    <!-- 查询UI元素角色授权信息 -->
+    <select id="getUiRoleGrantInfo" parameterClass="map" resultClass="dto">
+        select  distinct a.cmp_id,a.cmp_type
+        from sys_menu_part a
+        left join (select * from sys_role_partauth
+            where role_id in (SELECT role_id FROM sys_user_rolemap WHERE user_id = #user_id#) ) b
+        on a.cmp_id = b.cmp_id and a.menu_id = b.menu_id
+        WHERE  a.menu_id = #menu_id#
+    </select>
+
+    <select id="getAllMenuList4Desktop" parameterClass="map" resultClass="menuVo">
+        select menu_id as menuid,menu_name as menuname,icon_cls as iconcls,parent_id as parentid,
+        request,sort_no as sortno,leaf,expanded,authorize_level as authorizelevel,icon,shortcut,
+        width,height,scroll_bar as scrollbar from (
+            select a.menu_id, b.menu_name, b.icon_cls,b.parent_id,b.request,b.sort_no, b.leaf,
+            b.expanded, a.authorize_level, b.icon, b.shortcut, b.width, b.height, b.scroll_bar
+            from sys_role_menuauth a, sys_menu_info b
+            where (a.authorize_level = '0' or a.authorize_level = '2')
+            and a.menu_id = b.menu_id
+            and a.role_id in (select role_id from sys_user_rolemap  where user_id = #user_id#)
+            union
+            (select a.menu_id , b.menu_name, b.icon_cls,b.parent_id,b.request,b.sort_no, b.leaf,
+            b.expanded,a.authorize_level, b.icon, b.shortcut, b.width, b.height, b.scroll_bar
+            from sys_user_menuauth a, sys_menu_info b
+            where (a.authorize_level = '0' or a.authorize_level = '2')
+            and a.menu_id = b.menu_id and a.user_id = #user_id#)
+            order by menu_id asc)
+    </select>
+
+</sqlMap>

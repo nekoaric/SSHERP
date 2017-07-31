@@ -1,0 +1,158 @@
+html, body {
+    height: 100%;
+}
+body {
+    background-color:  #FFFFFF;
+    color: #000000;
+    font: 12px/1.8em "arial";
+    margin: 0;
+    padding: 0;
+}
+form, ul, ol, li, div, p, h1, h2, h3, input, select, textarea, td, th,label, dl, dt, dd {
+    font-size: 12px;
+    margin: 0px;
+    padding: 0px;
+}
+.nav li,  .login-cont .loginbtn {
+    background: url("../image/manage-picbg.png") no-repeat scroll 0 0 transparent;
+}
+input, select, img {
+    vertical-align: middle;
+}
+ul, li {
+    list-style: none outside none;
+}
+
+.login-cont {
+    height: 410px;
+    left: 50%;
+    margin-left: -465px;
+    margin-top: -191px;
+    overflow: hidden;
+    position: absolute;
+    top: 50%;
+    width: 902px;
+    z-index: 99;
+}
+.login-cont .login-l {
+    float: left;
+    width: 582px;
+	text-align:right;
+}
+.login-cont .login-l h1 {
+    background: url("../image/csr_logo.gif") no-repeat scroll 0 0 transparent;
+    height: 48px;
+	position: relative;
+}
+.login-cont .login-l h1 .version{
+	position:absolute;
+	font-size: 16px;
+	right:0;
+	bottom:0;
+}
+.login-cont .login-l h2 {
+    background: url("../image/csr_login-banner.gif") no-repeat scroll 0 0 transparent;
+    height: 273px;
+    margin-top: 0px;
+    text-indent: -999em;
+}
+.login-cont .login-3 {
+    float: left;
+    width: 650px;
+	margin-top: 5px;
+	text-indent: 8px;
+}
+.login-cont .login-3 .copyright {
+    font-size: 13px;
+	font-family: 'Arial';
+    height: 24px;
+    
+}
+.login-cont .login-r {
+	margin-top: 49px;
+    float: right;
+    width: 320px;
+}
+.login-cont .login-r .copy {
+    color: #848484;
+    text-align: center;
+}
+.login-cont .login-formb {
+    background-color: #F0F0F0;
+    border: 1px solid #D8D8D8;
+    margin-top: 0px;
+    padding: 17px 0;
+}
+.login-cont .login-formb table {
+    margin: 0 auto;
+    width: 280px;
+}
+.login-cont .login-formb table td {
+    padding: 5px 0;
+    vertical-align: top;
+}
+.login-cont .login-formb table td p {
+    visibility: hidden;
+}
+.login-cont .login-formb table td.heighth {
+    height: 20px;
+}
+.login-cont .login-formb th {
+    padding-bottom: 10px;
+    text-indent: -999em;
+    background: url("../image/manage-picbg.png") no-repeat scroll 0 0 transparent;
+    background-position: -117px -93px;
+}
+
+.login-cont .login-formb .inputtxt, .login-cont .login-formb .inputtxts {
+    background-position: 0 -45px;
+    border: 1px solid #CCCCCC;
+    height: 30px;
+    padding-top: 0px;
+    width: 182px;
+    line-height:30px;
+    font-size: 14px;
+    font-family: '微软雅黑';
+}
+
+.login-cont .login-formb .labeltxt {
+    font-size: 14px;
+    font-family: '微软雅黑';
+}
+
+.login-cont .login-formb .inputtxts {
+    width: 125px;
+}
+.login-cont .login-formb td img {
+    margin-left: 8px;
+	
+}
+.login-cont .loginbtn {
+    background-position: -108px -146px;
+    border: medium none;
+    cursor: pointer;
+    font-size: 14px;
+    font-family: '微软雅黑';
+    height: 31px;
+    width: 90px;
+}
+.trip-info {
+    background-position: 0 -313px;
+    color: #888888;
+    padding-left: 16px;
+}
+.input {
+    width: 96px;
+}
+#sel {
+	font-family: '微软雅黑';
+	width: 184px;
+	height: 30px;
+	vertical-align:middle;
+}
+.inputs {
+    width: 22px;
+}
+.inputb {
+    width: 150px;
+}

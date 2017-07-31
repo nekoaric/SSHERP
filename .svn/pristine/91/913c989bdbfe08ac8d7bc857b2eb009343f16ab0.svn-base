@@ -1,0 +1,552 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<sqlMap>
+    <!--   查询流水的交易人信息	-->
+    <select id="queryOrdDaylist4detailData" parameterClass="dto" resultClass="dto">
+        select nature,submit_name,submit_id,sure_name,sure_id,
+            driver,driver_id,order_id,style_no,article,mark,amount,
+            (select mbl_no from sys_user_info where sys_user_info.account=ord_day_list.submit_id) as submit_mbl,
+            (select mbl_no from sys_user_info where sys_user_info.account=ord_day_list.sure_id) as sure_mbl,
+            (select mbl_no from sys_user_info where sys_user_info.account=ord_day_list.driver_id) as driver_mbl
+        from ord_day_list 
+        where tr_date = #tr_date# and order_id = #order_id#
+        and nature in ($natures$)
+        and state != '1'
+    </select>
+	<select id="getOrderSche4OrderInfo" parameterClass="dto" resultClass="dto">
+		select max(a.order_num) as order_num,max(a.ins_num) as ins_num,sum(a.real_cut_num) as real_cut_num,
+        sum(a.draw_num) as draw_num,sum(a.sew_num) as sew_num,sum(a.bach_accept_num) as bach_accept_num,
+        sum(a.bach_delivery_num) as bach_delivery_num,sum(a.pack_accept_num) as pack_accept_num,
+        sum(a.f_product_num) as f_product_num,sum(a.b_product_num) as b_product_num,
+       	sum(a.receive_f_product) as receive_f_product,sum(a.receive_b_product) as receive_b_product,sum(a.middle_take) as middle_take,
+       	sum(a.sew_delivery_num) as sew_delivery_num,
+        max(b.ord_seq_no) as ord_seq_no,b.prod_ord_seq,max(c.value) as column_value,max(b.style_no)as style_no
+        from ord_sche_list a 
+        left join prod_ord_info b on b.ord_seq_no = a.order_id
+        left join prod_sub_info c on b.prod_ord_seq = c.id
+        where
+        b.prod_ord_seq = #prod_ord_seq#
+        group by b.prod_ord_seq;
+	</select>
+    <!-- 查询订单进度表 获取各个产品的进度信息-->
+    <select id="getOrdScheList" parameterClass="dto" resultClass="dto" remapResults="true">
+        select a.seq_no,a.product_id,a.order_num,a.ins_num,a.real_cut_num,a.draw_num,a.sew_num,a.bach_accept_num,
+        a.bach_delivery_num,a.pack_accept_num,a.f_product_num,a.b_product_num,a.remark,a.state,b.prod_ord_seq,
+        b.ord_seq_no
+        from prod_sche_list a left join prod_bas_info b on a.product_id = b.product_id
+        <dynamic prepend="where">
+            <isNotEmpty prepend="and" property="ord_seq_no">
+                ord_seq_no = #ord_seq_no#
+            </isNotEmpty>
+        </dynamic>
+    </select>
+    <!--获取订单总进度-->
+    <select id="getOrdScheListByOrdSeq" parameterClass="dto" resultClass="dto" remapResults="true">
+        select c.order_num,c.ins_num,a.real_cut_num,a.draw_num,a.sew_num,a.bach_accept_num,a.bach_delivery_num,a.pack_accept_num,a.f_product_num,
+        a.b_product_num,a.receive_f_product,a.receive_b_product,a.middle_take,a.sew_delivery_num,
+        b.order_id,b.article,b.brand,b.order_date,b.style_no,b.order_id as ord_seq_no,b.cust_id,d.remark,d.numedit_remark,d.fob_deal_date,f.product_date,d.opr_merchandiser,
+        (select cust_name from bas_cust_list where b.cust_id = bas_cust_list.cust_id) as cust_name,sendout_f_product,sendout_b_product,
+        case when a.real_cut_num != 0 and a.real_cut_num is not null and sendout_f_product is not null 
+        then trunc((a.real_cut_num-a.sendout_f_product)/(a.real_cut_num),5) 
+        else 0 end as consume,case when a.real_cut_num=0 or a.sendout_f_product=0 then 0 else (a.real_cut_num-a.sendout_f_product) end as consume_num,d.allow_loss_per,e.sew_fac_name,e.bach_fac_name,e.pack_fac_name,
+        (select count(*) from ord_report_list orl where orl.data = b.order_id and type='4') as isordreport,
+        e.sew_start_date,e.sew_delivery_date,e.bach_delivery_date,e.pack_delivery_date
+        from
+        ord_bas_info b left join
+        (SELECT sum(real_cut_num)as real_cut_num,sum(draw_num)as draw_num,sum(sew_num)as sew_num,sum(bach_accept_num)as bach_accept_num,
+        sum(bach_delivery_num)as bach_delivery_num,sum(pack_accept_num)as pack_accept_num,sum(f_product_num)as f_product_num,
+        sum(b_product_num)as b_product_num,sum(receive_f_product)as receive_f_product,sum(receive_b_product)as receive_b_product,
+        sum(middle_take)as middle_take,sum(sew_delivery_num)as sew_delivery_num,ord_seq_no,sum(sendout_f_product)as sendout_f_product,
+        sum(sendout_b_product)as sendout_b_product
+        FROM
+        ((select sum(a.real_cut_num) as real_cut_num,
+        sum(a.draw_num) as draw_num,sum(a.sew_num) as sew_num,sum(a.bach_accept_num) as bach_accept_num,
+        sum(a.bach_delivery_num) as bach_delivery_num,sum(a.pack_accept_num) as pack_accept_num,
+        sum(a.f_product_num) as f_product_num,sum(a.b_product_num) as b_product_num,sum(a.receive_f_product) as receive_f_product,
+        sum(a.receive_b_product) as receive_b_product,sum(a.middle_take) as middle_take,sum(a.sew_delivery_num) as sew_delivery_num,
+        b.ord_seq_no as ord_seq_no,sum(a.sendout_f_product) as sendout_f_product,sum(a.sendout_b_product) as sendout_b_product
+        from prod_sche_list a
+        left join (select a.ord_seq_no,b.seq_no,a.product_id,b.order_id from prod_bas_info a
+        left join ord_bas_info b on a.ord_seq_no= b.order_id ) b on a.product_id = b.product_id 
+        <dynamic prepend="where">
+            <isNotEmpty prepend="and" property="order_id">
+                b.order_id = #order_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="ord_seq_no">
+                b.ord_seq_no = #ord_seq_no#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="seqnos">
+                b.seq_no in ($seqnos$)
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="dynamicSql">
+                $dynamicSql$
+            </isNotEmpty>
+        </dynamic>
+        group by b.ord_seq_no) union all
+        (select real_cut_num,draw_num,sew_num,bach_accept_num,bach_delivery_num,pack_accept_num,
+        f_product_num,b_product_num,receive_f_product,receive_b_product,middle_take,sew_delivery_num,b.order_id as ord_seq_no,
+        sendout_f_product,sendout_b_product 
+        from ord_sche_list a
+        left join ord_bas_info b on a.order_id = b.order_id
+        <dynamic prepend="where">
+            <isNotEmpty prepend="and" property="order_id">
+                b.order_id = #order_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="ord_seq_no">
+                b.order_id = #ord_seq_no#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="seqnos">
+                b.seq_no in ($seqnos$)
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="dynamicSql">
+                $dynamicSql$
+            </isNotEmpty>
+        </dynamic>)
+        )
+        group by ord_seq_no
+        )a  on a.ord_seq_no = b.order_id         
+        left join (select sum(ord_num) as order_num,sum(ins_num) as ins_num,ord_seq_no  from prod_bas_info group by ord_seq_no) c
+        on b.order_id = c.ord_seq_no 
+        left join prod_ord_info d on d.ord_seq_no = b.order_id 
+        left join
+        (select a.prod_ord_seq,b.name as sew_fac_name,c.name as bach_fac_name,d.name as pack_fac_name,
+        a.sew_start_date,a.sew_delivery_date,a.bach_delivery_date,a.pack_delivery_date
+            from prod_plan_info a
+            left join sys_grps_info b on a.sew_fac = b.grp_id
+            left join sys_grps_info c on a.bach_fac = c.grp_id
+            left join sys_grps_info d on a.pack_fac = d.grp_id
+        )e on d.prod_ord_seq =e.prod_ord_seq
+        left join (select order_id,min(tr_date) as product_date from ord_day_list where nature=14  group by order_id) f on f.order_id=b.order_id
+        <dynamic prepend="where">
+            <isNotEmpty prepend="and" property="order_id">
+                a.ord_seq_no = #order_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="ord_seq_no">
+                b.order_id = #ord_seq_no#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="seqnos">
+                b.seq_no in ($seqnos$)
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="dynamicSql">
+                $dynamicSql$
+            </isNotEmpty>
+       </dynamic>
+       order by consume desc
+    </select>
+
+    <!--获取某个生产通知单下的所有流程的进度-->
+    <select id="getProdOrdScheList" parameterClass="dto" resultClass="dto" remapResults="true">
+              
+        select a.*,b.cust_id,b.order_id,b.article,b.brand,b.order_date,c.cust_name from
+        <!-- 统计订单数据和epc数据 -->
+        (select sum(a.order_num) as order_num,sum(a.ins_num) as ins_num,sum(a.real_cut_num) as real_cut_num,
+          sum(a.draw_num) as draw_num,sum(a.sew_num) as sew_num,sum(a.bach_accept_num) as bach_accept_num,
+        sum(a.bach_delivery_num) as bach_delivery_num,sum(a.pack_accept_num) as pack_accept_num,
+        sum(a.f_product_num) as f_product_num,sum(a.b_product_num) as b_product_num,
+        sum(a.receive_f_product) as receive_f_product,sum(a.receive_b_product) as receive_b_product,sum(a.middle_take) as middle_take,
+        sum(a.sew_delivery_num) as sew_delivery_num,max(a.ord_seq_no) as ord_seq_no,max(a.prod_ord_seq)as prod_ord_seq,max(a.column_value) as column_value,
+        max(a.style_no)as style_no,sum(a.sendout_f_product) as sendout_f_product,sum(a.sendout_b_product) as sendout_b_product 
+        from 
+        (select sum(b.ord_num) as order_num,sum(b.ins_num) as ins_num,sum(a.real_cut_num) as real_cut_num,
+        sum(a.draw_num) as draw_num,sum(a.sew_num) as sew_num,sum(a.bach_accept_num) as bach_accept_num,
+        sum(a.bach_delivery_num) as bach_delivery_num,sum(a.pack_accept_num) as pack_accept_num,
+        sum(a.f_product_num) as f_product_num,sum(a.b_product_num) as b_product_num,
+        sum(a.receive_f_product) as receive_f_product,sum(a.receive_b_product) as receive_b_product,sum(a.middle_take) as middle_take,
+        sum(a.sew_delivery_num) as sew_delivery_num,
+        max(b.ord_seq_no) as ord_seq_no,b.prod_ord_seq,max(b.value) as column_value,max(style_no)as style_no,
+        sum(a.sendout_f_product) as sendout_f_product,sum(a.sendout_b_product) as sendout_b_product
+        from prod_sche_list a
+        left join (select a.ord_num,a.ins_num,a.ord_seq_no,a.product_id,a.prod_ord_seq,b.cust_id,c.value,a.style_no
+            from prod_bas_info a
+            left join ord_bas_info b on a.ord_seq_no= b.order_id
+            left join prod_sub_info c on a.prod_ord_seq = c.id) b on a.product_id = b.product_id
+        <dynamic prepend="where">
+            <isNotEmpty prepend="and" property="prod_ord_seq">
+                b.prod_ord_seq = #prod_ord_seq#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="ord_seq_no">
+                b.ord_seq_no = #ord_seq_no#
+            </isNotEmpty>
+        </dynamic>
+        group by b.prod_ord_seq
+        union 
+        select max(a.order_num) as order_num,max(a.ins_num) as ins_num,sum(a.real_cut_num) as real_cut_num,
+        sum(a.draw_num) as draw_num,sum(a.sew_num) as sew_num,sum(a.bach_accept_num) as bach_accept_num,
+        sum(a.bach_delivery_num) as bach_delivery_num,sum(a.pack_accept_num) as pack_accept_num,
+        sum(a.f_product_num) as f_product_num,sum(a.b_product_num) as b_product_num,
+       	sum(a.receive_f_product) as receive_f_product,sum(a.receive_b_product) as receive_b_product,sum(a.middle_take) as middle_take,
+       	sum(a.sew_delivery_num) as sew_delivery_num,
+        max(b.ord_seq_no) as ord_seq_no,b.prod_ord_seq,max(c.value) as column_value,max(b.style_no)as style_no,
+        sum(a.sendout_f_product) as sendout_f_product,sum(a.sendout_b_product) as sendout_b_product
+        from ord_sche_list a 
+        left join prod_ord_info b on b.ord_seq_no = a.order_id
+        left join prod_sub_info c on b.prod_ord_seq = c.id
+         <dynamic prepend="where">
+            <isNotEmpty prepend="and" property="prod_ord_seq">
+                b.prod_ord_seq = #prod_ord_seq#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="ord_seq_no">
+                b.ord_seq_no = #ord_seq_no#
+            </isNotEmpty>
+        </dynamic>
+        group by b.prod_ord_seq
+        ) a ) a
+        left join ord_bas_info b on a.ord_seq_no = b.order_id
+        left join bas_cust_list c on b.cust_id = c.cust_id
+        <dynamic prepend="where">
+        	<isNotEmpty prepend="and" property="startdate">
+        		b.deli_date <![CDATA[>=]]> #startdate#
+        	</isNotEmpty>
+        	<isNotEmpty prepend="and" property="enddate">
+        		b.deli_date <![CDATA[<=]]> #enddate#
+        	</isNotEmpty>
+        </dynamic>
+      	
+    </select>
+<!-- 查询订单下的所有完单 -->
+	<select id="queryProdOrds" parameterClass="dto" resultClass="dto" remapResults="true">
+		select a.prod_ord_seq,a.ord_seq_no,c.value as columnValues
+			from prod_ord_info a join ord_bas_info b
+			on a.ord_seq_no = b.order_id
+			left join prod_sub_info c on c.id = a.prod_ord_seq
+		where b.order_id = #ord_seq_no#
+		and a.state = '0'
+	</select>
+    <select id="getOrdDayScheList" parameterClass="dto" resultClass="dto" remapResults="true">
+        select a.seq_no,a.tr_date,a.product_id,a.order_num,a.ins_num,a.real_cut_num,a.draw_num,a.sew_num,a.bach_accept_num,
+	        a.bach_delivery_num,a.pack_accept_num,a.f_product_num,a.b_product_num,a.remark,a.state,b.prod_ord_seq,
+	        b.ord_seq_no
+        from prod_sche_list a left join prod_bas_info b on a.product_id = b.product_id
+        <dynamic prepend="where">
+            <isNotEmpty prepend="and" property="product_id">
+                a.product_id = #product_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="start_date">
+                a.tr_date <![CDATA[>=]]> #start_date#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="end_date">
+                a.tr_date <![CDATA[<=]]> #end_date#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="ord_seq_no">
+                b.ord_seq_no = #ord_seq_no#
+            </isNotEmpty>
+        </dynamic>
+    </select>
+	<!-- 获取订单的各个流程所在工厂 -->
+	<select id="getNatureFacByOrderId" parameterClass="dto" resultClass="dto" remapResults="true">
+       select * from ( select distinct c.name,a.nature,d.ord_seq_no from epc_day_list a 
+	        left join dev_trm_info b on a.trm_no=b.trm_no
+	        left join sys_grps_info c on c.grp_id = b.belong_grp
+	        left join prod_ord_info d on a.prod_ord_seq = d.prod_ord_seq
+       		where d.ord_seq_no = #ord_seq_no#
+        union
+        select distinct b.name,a.nature,a.order_id as ord_seq_no
+        	from ord_day_list a 
+        	left join sys_grps_info b on a.grp_id = b.grp_id
+       		where a.order_id = #ord_seq_no#
+       	)
+        where name is not null
+	</select>
+    <!--获取某个订单的每天进度信息-->
+    <select id="getOrdDayScheListByOrdSeq" parameterClass="dto" resultClass="dto" remapResults="true">
+        select order_num,a.ins_num, real_cut_num,draw_num,sew_num,bach_accept_num,bach_delivery_num,pack_accept_num,
+        f_product_num,b_product_num,receive_f_product,receive_b_product,middle_take,sew_delivery_num,ord_seq_no,tr_date,
+        style_no,order_id,fob_deal_date,sendout_f_product,sendout_b_product,cust_name,opr_merchandiser 
+       	from 
+        (select sum(b.ord_num) as order_num,sum(b.ins_num) as ins_num,sum(a.real_cut_num) as real_cut_num,
+        sum(a.draw_num) as draw_num,sum(a.sew_num) as sew_num,sum(a.bach_accept_num) as bach_accept_num,
+        sum(a.bach_delivery_num) as bach_delivery_num,sum(a.pack_accept_num) as pack_accept_num,
+        sum(a.f_product_num) as f_product_num,sum(a.b_product_num) as b_product_num,sum(a.receive_f_product) as receive_f_product,
+        sum(a.receive_b_product) as receive_b_product,sum(a.middle_take) as middle_take,sum(a.sew_delivery_num) as sew_delivery_num,
+        b.ord_seq_no,a.tr_date,max(b.style_no)as style_no,b.ord_seq_no as order_id,d.cust_name,c.opr_merchandiser,min(c.fob_deal_date) as fob_deal_date,
+        sum(a.sendout_f_product) as sendout_f_product,sum(a.sendout_b_product) as sendout_b_product
+        from prod_day_sche a left join prod_bas_info b on a.product_id = b.product_id
+        left join prod_ord_info c on b.ord_seq_no = c.ord_seq_no 
+        left join bas_cust_list d on c.cust_id=d.cust_id 
+        <dynamic prepend="where">
+            <isNotEmpty prepend="and" property="ord_seq_no">
+                b.ord_seq_no = #ord_seq_no#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="start_date">
+                a.tr_date <![CDATA[>=]]> #start_date#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="end_date">
+                a.tr_date <![CDATA[<=]]> #end_date#
+            </isNotEmpty>
+        </dynamic>
+        group by b.ord_seq_no,a.tr_date,d.cust_name,c.opr_merchandiser 
+        order by a.tr_date desc)a
+        union all
+        (select a.order_num,a.ins_num, real_cut_num,draw_num,sew_num,bach_accept_num,bach_delivery_num,pack_accept_num,
+        f_product_num,b_product_num,receive_f_product,receive_b_product,middle_take,sew_delivery_num,b.order_id as ord_seq_no,a.tr_date,
+        b.style_no,a.order_id,c.fob_deal_date,sendout_f_product,sendout_b_product,d.cust_name,opr_merchandiser 
+        from ord_day_sche a
+        left join ord_bas_info b on a.order_id = b.order_id
+        left join prod_ord_info c on a.order_id = c.ord_seq_no
+        left join bas_cust_list d on c.cust_id=d.cust_id 
+        <dynamic prepend="where">
+            <isNotEmpty prepend="and" property="ord_seq_no">
+                b.order_id = #ord_seq_no#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="start_date">
+                a.tr_date <![CDATA[>=]]> #start_date#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="end_date">
+                a.tr_date <![CDATA[<=]]> #end_date#
+            </isNotEmpty>
+        </dynamic>
+        )
+    </select>
+
+    <!--导出总进度-->
+    <select id="getOrdListForexcel" parameterClass="dto" resultClass="dto" remapResults="true">
+        select a.*,b.order_id,b.article,b.brand,b.order_date from
+        (SELECT order_num,INS_NUM, real_cut_num,draw_num,sew_num,bach_accept_num,bach_delivery_num,pack_accept_num,
+        f_product_num,b_product_num,receive_f_product,receive_b_product,middle_take,sew_delivery_num,ord_seq_no,cust_id FROM
+        (select sum(b.ord_num) as order_num,sum(b.ins_num) as ins_num,sum(a.real_cut_num) as real_cut_num,
+        sum(a.draw_num) as draw_num,sum(a.sew_num) as sew_num,sum(a.bach_accept_num) as bach_accept_num,
+        sum(a.bach_delivery_num) as bach_delivery_num,sum(a.pack_accept_num) as pack_accept_num,
+        sum(a.f_product_num) as f_product_num,sum(a.b_product_num) as b_product_num,sum(a.receive_f_product) as receive_f_product,
+        sum(a.receive_b_product) as receive_b_product,sum(middle_take) as middle_take,sum(sew_delivery_num) as sew_delivery_num,
+        b.ord_seq_no as ord_seq_no,b.cust_id as cust_id
+        from prod_sche_list a
+        left join (select a.ord_num,a.ins_num,a.ord_seq_no,b.cust_id,b.seq_no,a.product_id from prod_bas_info a
+            left join ord_bas_info b on a.ord_seq_no= b.order_id ) b on a.product_id = b.product_id
+        <dynamic prepend="where">
+            <isNotEmpty prepend="and" property="ord_seq_no">
+                b.ord_seq_no = #ord_seq_no#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="seqnos">
+                b.seq_no in ($seqnos$)
+            </isNotEmpty>
+        </dynamic>
+        group by b.ord_seq_no,b.cust_id) union all
+        (select a.order_num,a.ins_num, real_cut_num,draw_num,sew_num,bach_accept_num,bach_delivery_num,pack_accept_num,
+        f_product_num,b_product_num,receive_f_product,receive_b_product,middle_take,sew_delivery_num,b.order_id as ord_seq_no,b.cust_id from ord_sche_list a
+        left join ord_bas_info b on a.order_id = b.order_id
+        <dynamic prepend="where">
+            <isNotEmpty prepend="and" property="ord_seq_no">
+                b.order_id = #ord_seq_no#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="seqnos">
+                b.seq_no in ($seqnos$)
+            </isNotEmpty>
+        </dynamic>)
+        )a left join ord_bas_info b on a.ord_seq_no = b.order_id
+    </select>
+
+    <!--导出日进度-->
+    <select id="getOrdDayListForexcel" parameterClass="dto" resultClass="dto" remapResults="true">
+       select a.*,b.fob_deal_date from (
+       select order_num,a.ins_num, real_cut_num,draw_num,sew_num,bach_accept_num,bach_delivery_num,pack_accept_num,
+        f_product_num,b_product_num,ord_seq_no,tr_date
+        from (select sum(b.ord_num) as order_num,sum(b.ins_num) as ins_num,sum(a.real_cut_num) as real_cut_num,
+        sum(a.draw_num) as draw_num,sum(a.sew_num) as sew_num,sum(a.bach_accept_num) as bach_accept_num,
+        sum(a.bach_delivery_num) as bach_delivery_num,sum(a.pack_accept_num) as pack_accept_num,
+        sum(a.f_product_num) as f_product_num,sum(a.b_product_num) as b_product_num,
+        b.ord_seq_no,a.tr_date
+        from prod_day_sche a left join prod_bas_info b on a.product_id = b.product_id
+        <dynamic prepend="where">
+            <isNotEmpty prepend="and" property="ord_seq_no">
+                b.ord_seq_no = #ord_seq_no#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="start_date">
+                a.tr_date <![CDATA[>=]]> #start_date#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="end_date">
+                a.tr_date <![CDATA[<=]]> #end_date#
+            </isNotEmpty>
+        </dynamic>
+        group by b.ord_seq_no,a.tr_date
+        order by a.tr_date)a
+        union all
+        (select a.order_num,a.ins_num, real_cut_num,draw_num,sew_num,bach_accept_num,bach_delivery_num,pack_accept_num,
+        f_product_num,b_product_num,b.order_id as ord_seq_no,a.tr_date from ord_day_sche a
+        left join ord_bas_info b on a.order_id = b.order_id
+        <dynamic prepend="where">
+            <isNotEmpty prepend="and" property="ord_seq_no">
+                b.order_id = #ord_seq_no#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="start_date">
+                a.tr_date <![CDATA[>=]]> #start_date#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="end_date">
+                a.tr_date <![CDATA[<=]]> #end_date#
+            </isNotEmpty>
+        </dynamic>
+        )) a left join prod_ord_info b on a.ord_seq_no=b.ord_seq_no 
+        order by tr_date
+    </select>
+
+    <!--获取订单指令数-->
+    <select id="getInsNumInfo4OrdSche" parameterClass="map" resultClass="dto" >
+       select a.ins_num,a.ord_num as order_num,a.ord_seq_no,b.order_date,c.REAL_CUT_NUM,c.DRAW_NUM,c.SEW_NUM,c.BACH_ACCEPT_NUM,
+       c.BACH_DELIVERY_NUM,c.PACK_ACCEPT_NUM,c.F_PRODUCT_NUM,c.B_PRODUCT_NUM
+       from
+        (select sum(ins_num) as ins_num,sum(ord_num) as ord_num ,ord_seq_no from prod_bas_info
+        where ord_seq_no =#ord_seq_no# and state='0' group by ord_seq_no) a
+        left join ord_bas_info b on a.ord_seq_no = b.order_id
+        left join ord_sche_list c on a.ord_seq_no = c.order_id
+    </select>
+
+	<!--获取多订单指令数-->
+    <select id="getInsNumInfoMultiOrd" parameterClass="dto" resultClass="dto" remapResults="true" >
+       select a.ins_num,a.ord_num as order_num,a.ord_seq_no,b.order_date,c.REAL_CUT_NUM,c.DRAW_NUM,c.SEW_NUM,c.BACH_ACCEPT_NUM,
+       c.BACH_DELIVERY_NUM,c.PACK_ACCEPT_NUM,c.F_PRODUCT_NUM,c.B_PRODUCT_NUM,b.style_no
+       from
+        (select sum(a.ins_num) as ins_num,sum(a.ord_num) as ord_num ,a.ord_seq_no from prod_bas_info a 
+        left join ord_bas_info b on b.order_id = a.ord_seq_no
+        where $dynamicSql$ and a.state='0' group by a.ord_seq_no) a
+        left join ord_bas_info b on a.ord_seq_no = b.order_id
+        left join ord_sche_list c on a.ord_seq_no = c.order_id
+    </select>
+
+ <!--获取多个订单的每天进度信息-->
+    <select id="getOrdDayScheListByMultiOrdSeq" parameterClass="dto" resultClass="dto" remapResults="true">
+        select order_num,a.ins_num, real_cut_num,draw_num,sew_num,bach_accept_num,bach_delivery_num,pack_accept_num,
+        f_product_num,b_product_num,receive_f_product,receive_b_product,middle_take,sew_delivery_num,ord_seq_no,tr_date,
+        style_no,sendout_f_product,sendout_b_product
+        from (select sum(c.ord_num) as order_num,sum(c.ins_num) as ins_num,sum(a.real_cut_num) as real_cut_num,
+        sum(a.draw_num) as draw_num,sum(a.sew_num) as sew_num,sum(a.bach_accept_num) as bach_accept_num,
+        sum(a.bach_delivery_num) as bach_delivery_num,sum(a.pack_accept_num) as pack_accept_num,
+        sum(a.f_product_num) as f_product_num,sum(a.b_product_num) as b_product_num,
+        sum(a.receive_f_product) as receive_f_product,sum(a.receive_b_product) as receive_b_product,
+        sum(a.middle_take) as middle_take,sum(a.sew_delivery_num) as sew_delivery_num,c.ord_seq_no,a.tr_date,
+        b.style_no,sum(a.sendout_f_product) as sendout_f_product,sum(a.sendout_b_product) as sendout_b_product
+        from prod_day_sche a left join prod_bas_info c on a.product_id = c.product_id
+        left join ord_bas_info b on b.order_id = c.ord_seq_no  
+<!--        where c.seq_no in ($ordseqnos$)-->
+        where $dynamicSql$
+         <isNotEmpty prepend="and" property="start_date">
+             a.tr_date <![CDATA[>=]]> #start_date#
+         </isNotEmpty>
+         <isNotEmpty prepend="and" property="end_date">
+             a.tr_date <![CDATA[<=]]> #end_date#
+         </isNotEmpty>
+        group by c.ord_seq_no,a.tr_date,b.style_no
+        order by c.ord_seq_no,a.tr_date)a
+        union all
+        (select a.order_num,a.ins_num, real_cut_num,draw_num,sew_num,bach_accept_num,bach_delivery_num,pack_accept_num,
+        f_product_num,b_product_num,receive_f_product,receive_b_product,middle_take,sew_delivery_num,b.order_id as ord_seq_no,a.tr_date,
+        b.style_no,sendout_f_product,sendout_b_product
+        from ord_day_sche a
+        left join ord_bas_info b on a.order_id = b.order_id
+<!--		where b.seq_no in ($ordseqnos$)-->
+where $dynamicSql$
+        <isNotEmpty prepend="and" property="start_date">
+            a.tr_date <![CDATA[>=]]> #start_date#
+        </isNotEmpty>
+        <isNotEmpty prepend="and" property="end_date">
+            a.tr_date <![CDATA[<=]]> #end_date#
+        </isNotEmpty>
+        )order by ord_seq_no,tr_date
+    </select>
+<!--获取多订单总进度：导出-->
+    <select id="getOrdScheListByMultiOrdSeq" parameterClass="dto" resultClass="dto" remapResults="true">
+        select a.*,b.order_id,b.article,b.brand,b.order_date,b.style_no from
+        (SELECT order_num,INS_NUM, real_cut_num,draw_num,sew_num,bach_accept_num,bach_delivery_num,pack_accept_num,
+        f_product_num,b_product_num,receive_f_product,receive_b_product,middle_take,sew_delivery_num,ord_seq_no,cust_id FROM
+        (select sum(b.ord_num) as order_num,sum(b.ins_num) as ins_num,sum(a.real_cut_num) as real_cut_num,
+        sum(a.draw_num) as draw_num,sum(a.sew_num) as sew_num,sum(a.bach_accept_num) as bach_accept_num,
+        sum(a.bach_delivery_num) as bach_delivery_num,sum(a.pack_accept_num) as pack_accept_num,
+        sum(a.f_product_num) as f_product_num,sum(a.b_product_num) as b_product_num,
+        sum(a.receive_f_product) as receive_f_product,sum(a.receive_b_product) as receive_b_product,
+        sum(a.middle_take) as middle_take,sum(a.sew_delivery_num) as sew_delivery_num,
+        b.ord_seq_no as ord_seq_no,b.cust_id as cust_id
+        from prod_sche_list a
+        join (select a.ord_num,a.ins_num,a.ord_seq_no,b.cust_id,b.seq_no,a.product_id from prod_bas_info a
+            left join ord_bas_info b on a.ord_seq_no= b.order_id 
+        <dynamic prepend="where">
+            <isNotEmpty prepend="and" property="ordseqnos">
+                b.seq_no in ($ordseqnos$)
+            </isNotEmpty>
+        </dynamic>
+         ) b on a.product_id = b.product_id
+        group by b.ord_seq_no,b.cust_id) union all
+        (select a.order_num,a.ins_num, real_cut_num,draw_num,sew_num,bach_accept_num,bach_delivery_num,pack_accept_num,
+        f_product_num,b_product_num,receive_f_product,receive_b_product,middle_take,sew_delivery_num,b.order_id as ord_seq_no,b.cust_id from ord_sche_list a
+        join ord_bas_info b on a.order_id = b.order_id
+        <dynamic prepend="where">
+            <isNotEmpty prepend="and" property="ordseqnos">
+                b.seq_no in ($ordseqnos$)
+            </isNotEmpty>
+        </dynamic>)
+        )a left join ord_bas_info b on a.ord_seq_no = b.order_id
+    </select>
+    
+    <select id="getOrdNum" parameterClass="map" resultClass="java.lang.String" >
+        select sum(ord_num) from prod_bas_info where ord_seq_no =#ord_seq_no# and state='0'
+    </select>
+
+    <!--获取某个生产通知单下的所有流程的进度-->
+    <select id="getProdScheListByProdOrdSeq" parameterClass="dto" resultClass="dto" remapResults="true">
+        select a.order_num,a.ins_num,a.real_cut_num,a.draw_num,a.sew_num,a.bach_accept_num,
+        a.bach_delivery_num,a.pack_accept_num,a.f_product_num,a.b_product_num,
+        a.receive_f_product,a.receive_b_product,a.middle_take,a.sew_delivery_num,a.sendout_f_product,a.sendout_b_product,
+        b.product_id,b.country,b.color,b.in_length,b.waist,b.style_no,b.ord_seq_no,
+        b.prod_ord_seq,b.value,b.article,b.brand,b.cust_id
+        from prod_sche_list a right join
+        (select a.*,b.value,c.article,c.brand,c.cust_id from prod_bas_info a
+        left join prod_sub_info b on a.prod_ord_seq = b.id
+        left join prod_ord_info c on a.prod_ord_seq = c.prod_ord_seq) b
+            on a.product_id = b.product_id
+        <dynamic prepend="where">
+            <isNotEmpty prepend="and" property="prod_ord_seq">
+                b.prod_ord_seq = #prod_ord_seq#
+            </isNotEmpty>
+        </dynamic>
+        order by b.seq_no
+    </select>
+	<!-- 产品绑定的短缺信息 -->
+	<select id="getProdShortInfo" parameterClass="dto" resultClass="dto" remapResults="true">
+		select a.*,b.cust_id,b.order_id,b.article,b.brand,b.order_date from
+        (select sum(b.ord_num) as order_num,sum(b.ins_num) as ins_num,sum(a.real_cut_num) as real_cut_num,
+        sum(a.draw_num) as draw_num,sum(a.sew_num) as sew_num,sum(a.bach_accept_num) as bach_accept_num,
+        sum(a.bach_delivery_num) as bach_delivery_num,sum(a.pack_accept_num) as pack_accept_num,
+        sum(a.f_product_num) as f_product_num,sum(a.b_product_num) as b_product_num,
+        sum(a.receive_f_product) as receive_f_product,sum(a.receive_b_product) as receive_b_product,sum(a.middle_take) as middle_take,
+        sum(a.sew_delivery_num) as sew_delivery_num,sum(a.sendout_f_product) as sendout_f_product,sum(a.sendout_b_product) as sendout_b_product,
+        max(b.ord_seq_no) as ord_seq_no,b.prod_ord_seq,max(b.value) as column_value
+        from prod_sche_list a
+        left join (select a.ord_num,a.ins_num,a.ord_seq_no,a.product_id,a.prod_ord_seq,b.cust_id,c.value
+            from prod_bas_info a
+            left join ord_bas_info b on a.ord_seq_no= b.order_id
+            left join prod_sub_info c on a.prod_ord_seq = c.id) b on a.product_id = b.product_id
+        <dynamic prepend="where">
+            <isNotEmpty prepend="and" property="prod_ord_seq">
+                b.prod_ord_seq = #prod_ord_seq#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="ord_seq_no">
+                b.ord_seq_no = #ord_seq_no#
+            </isNotEmpty>
+        </dynamic>
+        group by b.prod_ord_seq
+        ) a
+        left join ord_bas_info b on a.ord_seq_no = b.order_id
+        <dynamic prepend="where">
+        	<isNotEmpty prepend="and" property="startdate">
+        		b.deli_date <![CDATA[>=]]> #startdate#
+        	</isNotEmpty>
+        	<isNotEmpty prepend="and" property="enddate">
+        		b.deli_date <![CDATA[<=]]> #enddate#
+        	</isNotEmpty>
+        </dynamic>
+	</select>
+	<select id="queryCount4Stream" parameterClass="dto" resultClass="java.lang.Long">
+		select sum(sum_num)as sum_num from 
+		(select count(*)as sum_num from epc_day_list a left join prod_ord_info b on a.prod_ord_seq= b.prod_ord_seq
+		where b.ord_seq_no = #ord_seq_no#
+		union 
+		select count(*)as sum_num from ord_day_list where order_id = #ord_seq_no#)
+	</select>
+	
+	<select id="queryFactoryBySuperFactory" parameterClass="dto" resultClass="dto" >
+		select a.dept_id as value,a.dept_name as text from sys_dept_info a left join sys_dept_info b on a.parent_id = b.dept_id
+		where b.dept_name = #superFactory#
+	</select>
+	<!-- 根据订单号获取所有的交接记录备注 -->
+	<select id="getOrdDayRemarkByOrderId" parameterClass="dto" remapResults="true" resultClass="dto" >
+		select remark from ord_day_list where order_id = #order_id# and remark is not null  group by remark
+	</select>
+	
+</sqlMap>

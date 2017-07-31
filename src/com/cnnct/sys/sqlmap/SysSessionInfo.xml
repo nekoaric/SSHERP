@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<!-- 用户管理与授权手工映射SQL语句 -->
+<sqlMap>
+    <typeAlias alias="dto" type="org.eredlab.g4.ccl.datastructure.impl.BaseDto"/>
+    
+<!--  查询未登录人员信息  -->
+     <select id="queryAccountUnLoginInfo4serviceAccount" parameterClass="dto" resultClass="dto" remapResults="true">
+        select a.user_name,a.account from sys_user_info a where a.user_name in (select opr_merchandiser  from prod_ord_info where prodstatus in ('0','1'))
+            and account not in  (select account from sys_login_info b
+					            <dynamic prepend="where">
+					               <isNotEmpty property="startdate" prepend="and">
+					                   b.opr_date <![CDATA[>=]]> #startdate#
+					               </isNotEmpty>
+					               <isNotEmpty property="enddate" prepend="and">
+					                   b.opr_date <![CDATA[<=]]> #enddate#
+					               </isNotEmpty>
+					            </dynamic>
+					            )
+            <dynamic>
+                <isNotEmpty property="account" prepend="and">
+                   a.account = #account#
+               </isNotEmpty>
+               <isNotEmpty property="user_name" prepend="and">
+                   a.user_name like '%$user_name$%'
+               </isNotEmpty>
+            </dynamic>
+        order by  account 
+    </select>
+<!--  查询业务员的登录情况  -->
+    <select id="queryAccountLoginInfo4serviceAccount" parameterClass="dto" resultClass="dto" remapResults="true">
+        select a.seq_no,a.account,a.opr_date,a.count,round(a.logintime/60000) as logintime,b.user_name 
+        from sys_login_info a,sys_user_info b
+	        where a.account=b.account 
+	            and  b.user_name in (select opr_merchandiser  from prod_ord_info where prodstatus in ('0','1') )
+	        <dynamic>
+	           <isNotEmpty property="account" prepend="and">
+	               a.account = #account#
+	           </isNotEmpty>
+	           <isNotEmpty property="user_name" prepend="and">
+	               b.user_name like '%$user_name$%'
+	           </isNotEmpty>
+	           <isNotEmpty property="startdate" prepend="and">
+	               a.opr_date <![CDATA[>=]]> #startdate#
+	           </isNotEmpty>
+	           <isNotEmpty property="enddate" prepend="and">
+	               a.opr_date <![CDATA[<=]]> #enddate#
+	           </isNotEmpty>
+	        </dynamic>
+        order by opr_date desc
+    </select>
+    <!--  查询登录人员信息  -->
+    <select id="countSessionInfo4account" parameterClass="dto" resultClass="dto" remapResults="true">
+        select count(*) as count from sys_session_list where account=#account#
+    </select>
+    <!-- 查询请求信息 -->
+    <select id="queryRequestInfo" parameterClass="dto" resultClass="dto" remapResults="true">
+        select  a.seq_no,a.uuid,a.path,a.reqcode,a.sessionid,c.descinfo,b.remotehost,d.user_name,b.account,
+		case when a.startlongtime is null then ''  when a.startlongtime=0 then '' else 
+		        TO_CHAR(a.startlongtime / (1000 * 60 * 60 * 24) + TO_DATE('1970-01-01 08:00:00', 'YYYY-MM-DD HH24:MI:SS'), 'YYYY-MM-DD HH24:MI:SS')
+		        end  AS startlongtime,
+		case when a.endlongtime is null then '' when a.endlongtime=0 then '' else 
+		        TO_CHAR(a.endlongtime / (1000 * 60 * 60 * 24) +  TO_DATE('1970-01-01 08:00:00', 'YYYY-MM-DD HH24:MI:SS'), 'YYYY-MM-DD HH24:MI:SS')
+		        end  AS endlongtime,
+		(a.endlongtime - a.startlongtime) as longtime
+		from sys_request_list a left join sys_session_list b on a.sessionid = b.sessionid
+		left join sys_function_list c on a.path = c.request_path and a.reqcode = c.reqcode
+		left join sys_user_info d on b.account = d.account
+		<dynamic prepend="where">
+		      <isNotEmpty prepend="and" property="account">
+		          b.account = #account#
+		      </isNotEmpty>
+		</dynamic>
+		order by a.startlongtime desc
+    </select>
+    <!-- 查询用户信息 -->
+    <select id="querySessionInfo" parameterClass="dto" resultClass="dto" remapResults="true">
+        select a.sessionid,a.account,a.useragent,a.remotehost,b.user_name,
+        case when a.starttime is null then ''
+        when a.starttime=0 then ''
+        else 
+        TO_CHAR(a.starttime / (1000 * 60 * 60 * 24) +  
+            TO_DATE('1970-01-01 08:00:00', 'YYYY-MM-DD HH24:MI:SS'), 'YYYY-MM-DD HH24:MI:SS')
+        end  AS starttime,
+        case when a.endtime is null then '在线'
+        when a.endtime=0 then '服务器维护下线'
+        else 
+        TO_CHAR(a.endtime / (1000 * 60 * 60 * 24) +  
+            TO_DATE('1970-01-01 08:00:00', 'YYYY-MM-DD HH24:MI:SS'), 'YYYY-MM-DD HH24:MI:SS')
+        end  AS endtime
+        from sys_session_list a left join sys_user_info b on a.account = b.account
+        <dynamic prepend="where">
+            <isNotEmpty prepend="and" property="isOnline">
+                a.endtime is null
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="isLogin">
+                a.account is not null
+            </isNotEmpty>
+        </dynamic>
+        order by a.starttime desc
+    </select>
+    <!-- 查询所有人员登陆信息 -->
+    <select id="queryAllAccountLoginInfo" parameterClass="dto" resultClass="dto" remapResults="true">
+        select a.seq_no,a.account,a.opr_date,a.count ,round(a.logintime/60000) as logintime,b.user_name,c.dept_name 
+        from sys_login_info a 
+        left join sys_user_info b on a.account=b.account 
+        left join sys_dept_info c on b.dept_id=c.dept_id
+	        <dynamic prepend="where">
+	           <isNotEmpty property="account" prepend="and">
+	               a.account = #account#
+	           </isNotEmpty>
+	           <isNotEmpty property="user_name" prepend="and">
+	               b.user_name like '%$user_name$%'
+	           </isNotEmpty>
+	           <isNotEmpty property="startdate" prepend="and">
+	               a.opr_date <![CDATA[>=]]> #startdate#
+	           </isNotEmpty>
+	           <isNotEmpty property="enddate" prepend="and">
+	               a.opr_date <![CDATA[<=]]> #enddate#
+	           </isNotEmpty>
+	        </dynamic>
+        order by opr_date desc
+    </select>
+</sqlMap>

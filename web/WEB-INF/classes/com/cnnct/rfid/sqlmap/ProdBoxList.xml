@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<sqlMap>
+    <typeAlias alias="dto"
+               type="org.eredlab.g4.ccl.datastructure.impl.BaseDto"/>
+    <!-- RFID	基本信息查询  -->
+    <select id="queryProdBoxList" parameterClass="map" resultClass="dto">
+        select max(ord_seq_no) as ord_seq_no ,batch,opr_id,opr_date,prod_box_no from prod_box_list
+        <dynamic prepend="WHERE">
+            <isNotEmpty prepend="AND" property="seq_no">
+                seq_no = #seq_no#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="product_id">
+                product_id = #product_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="ord_seq_no">
+                ord_seq_no = #ord_seq_no#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="batch">
+                batch = #batch#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="state">
+                state = '0'
+            </isNotEmpty>
+        </dynamic>
+        group by ord_seq_no,batch,opr_id,opr_date,prod_box_no
+    </select>
+
+    <!-- RFID	装箱单最大编号查询  -->
+    <select id="queryMaxProdBoxNo" parameterClass="map" resultClass="Integer">
+        select max(cast(seq_no as int)) as seq_no from prod_box_list
+    </select>
+
+    <!--  RFID	装箱单登记 -->
+    <insert id="insertProdBoxList" parameterClass="dto">
+        insert into prod_box_list
+        (seq_no,prod_box_no,ord_seq_no,batch,box_no,product_id,amount,opr_id,opr_date,state)values
+        (#seq_no#,#prod_box_no#,#ord_seq_no#,#batch#,#box_no#,#product_id#,#amount#,#opr_id#,#opr_date#,#state#)
+    </insert>
+
+    <select id="queryProdBoxListCount" parameterClass="map"
+            resultClass="java.lang.Integer">
+        SELECT count(max(prod_box_no)) FROM prod_box_list
+        <dynamic prepend="WHERE">
+            <isNotEmpty prepend="AND" property="seq_no">
+                seq_no = #seq_no#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="product_id">
+                product_id = #product_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="ord_seq_no">
+                ord_seq_no = #ord_seq_no#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="batch">
+                batch = #batch#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="state">
+                state = '0'
+            </isNotEmpty>
+        </dynamic>
+        group by prod_box_no
+    </select>
+
+    <select id="queryProdBoxDetail" parameterClass="map" resultClass="dto">
+        SELECT box_no,amount,product_id FROM prod_box_list
+        <dynamic prepend="WHERE">
+            <isNotEmpty prepend="AND" property="prod_box_no">
+                prod_box_no = #prod_box_no#
+            </isNotEmpty>
+        </dynamic>
+    </select>
+
+    <delete id="deleteProdBoxForEdit" parameterClass="map">
+        DELETE FROM prod_box_list WHERE prod_box_no = #prod_box_no#
+    </delete>
+
+    <!-- RFID	装箱单删除  -->
+    <update id="deleteProdBoxInfo" parameterClass="dto">
+        UPDATE PROD_BOX_LIST
+        <dynamic prepend="SET">
+            <isNotEmpty prepend="," property="state">
+                state =#state#
+            </isNotEmpty>
+        </dynamic>
+        <dynamic prepend="WHERE">
+            <isNotEmpty prepend="AND" property="prod_box_no">
+                prod_box_no =#prod_box_no#
+            </isNotEmpty>
+        </dynamic>
+    </update>
+</sqlMap>

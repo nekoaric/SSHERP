@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts-config PUBLIC "-//Apache Software Foundation//DTD Struts Configuration 1.2//EN" "http://struts.apache.org/dtds/struts-config_1_3.dtd">
+<struts-config>
+	<!-- Action映射 -->
+	<action-mappings type="org.apache.struts.action.ActionMapping"> 
+        <action name="commonActionForm" path="/ordRecord" scope="request"
+            validate="false" parameter="reqCode" type="com.cnnct.may.web.OrdRecordManagerAction">
+            <forward name="ordRecordView" path="/may/manageOrdRecord.jsp" />
+			<forward name="ordRecord4AddView" path="/may/manageOrdRecord4Add.jsp" />
+            <forward name="manageUserCardView" path="/may/manageUserCard.jsp" />
+        </action>
+        
+	</action-mappings>
+	
+</struts-config>

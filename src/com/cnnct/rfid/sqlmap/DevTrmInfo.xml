@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<!-- 资源模型手工映射SQL语句 -->
+<sqlMap>
+	<typeAlias alias="dto"
+		type="org.eredlab.g4.ccl.datastructure.impl.BaseDto" />
+	<!--查询设备信息 -->
+	<select id="queryDeviceBaseInfo" parameterClass="map" resultClass="dto">
+		SELECT a.grp_id,a.trm_no,a.trm_name,a.trm_kind,a.trm_flag,a.com_way,a.com_port,
+        a.com_spd,a.trm_addr,a.ins_date,a.notes,a.state,a.belong_grp,b.name as belong_grp_name
+		from DEV_TRM_INFO a
+        left join sys_grps_info b on a.belong_grp = b.grp_id
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="grp_id">
+                a.grp_id = #grp_id#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="trm_no">
+                a.trm_no = #trm_no#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="trm_name">
+                a.trm_name = #trm_name#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="trm_kind">
+                a.trm_kind = #trm_kind#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="trm_flag">
+                a.trm_flag = #trm_flag#
+			</isNotEmpty>
+		</dynamic>
+		order by a.trm_no
+	</select>
+
+	<select id="queryDeviceBaseInfoCount" parameterClass="map"
+		resultClass="java.lang.Integer">
+		SELECT count(*) FROM DEV_TRM_INFO a
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="grp_id">
+				a.grp_id = #grp_id#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="trm_no">
+				a.trm_no = #trm_no#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="trm_name">
+				a.trm_name = #trm_name#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="trm_kind">
+				a.trm_kind = #trm_kind#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="trm_flag">
+				a.trm_flag = #trm_flag#
+			</isNotEmpty>
+		</dynamic>
+	</select>
+
+	<!-- 插入一条设备信息 -->
+	<insert id="insertDeviceBaseInfo" parameterClass="dto">
+		INSERT INTO DEV_TRM_INFO
+        (grp_id,trm_no,trm_name,trm_kind,trm_flag,
+		com_way,com_port,com_spd,trm_addr,ins_date,belong_grp,notes,state)
+		VALUES (#grp_id#,#trm_no#,#trm_name#,#trm_kind#,#trm_flag#,
+		#com_way#,#com_port#,#com_spd#,#trm_addr#,#ins_date#,#belong_grp#,#notes#,#state#)
+	</insert>
+
+	<!-- 删除设备信息 -->
+	<update id="deleteDeviceBaseInfo" parameterClass="dto">
+		UPDATE DEV_TRM_INFO
+		<dynamic prepend="SET">
+			<isNotEmpty prepend="," property="state">
+				state= #state#
+			</isNotEmpty>
+		</dynamic>
+		where grp_id=#grp_id# and trm_no=#trm_no#
+	</update>
+
+	<!-- 根据主键更新设备信息表 -->
+	<update id="updateDeviceBaseInfo" parameterClass="dto">
+		UPDATE DEV_TRM_INFO
+		<dynamic prepend="SET">
+			<isNotEmpty prepend="," property="trm_name">
+				trm_name= #trm_name#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="trm_kind">
+				trm_kind=#trm_kind#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="trm_flag">
+				trm_flag= #trm_flag#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="com_way">
+				com_way= #com_way#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="com_port">
+				com_port= #com_port#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="com_spd">
+				com_spd= #com_spd#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="trm_addr">
+				trm_addr= #trm_addr#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="ins_date">
+				ins_date= #ins_date#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="state">
+				state= #state#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="belong_grp">
+                belong_grp= #belong_grp#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="notes">
+				notes= #notes#
+			</isNotEmpty>
+		</dynamic>
+		where grp_id=#grp_id# and trm_no=#trm_no#
+	</update>
+	
+		<!-- 获取设备最大序号信息 -->
+	<select id="getDevBaseTrmno" parameterClass="map" resultClass="java.lang.Integer">
+		select max(trm_no) from DEV_TRM_INFO
+	</select>
+	
+	<!--导出设备信息 -->
+	<select id="queryDeviceBaseInfo4excle" parameterClass="map"
+		resultClass="dto" remapResults="true">
+		SELECT grp_id,(select name from sys_grps_info b where a.belong_grp = b.grp_id)as grp_name,trm_no,trm_name,trm_kind,trm_flag,
+		com_way,com_port,com_spd,trm_addr,ins_date,notes,state
+		from DEV_TRM_INFO
+        <dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="grp_id">
+				grp_id = #grp_id#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="trm_no">
+				trm_no = #trm_no#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="trm_name">
+				trm_name = #trm_name#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="trm_kind">
+				trm_kind = #trm_kind#
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="trm_flag">
+				trm_flag = #trm_flag#
+			</isNotEmpty>
+		</dynamic>
+		order by trm_no
+	</select>
+
+</sqlMap>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<!-- 资源模型手工映射SQL语句 -->
+<sqlMap>
+	<typeAlias alias="dto"
+		type="org.eredlab.g4.ccl.datastructure.impl.BaseDto" />
+	<!--查询 待对接方提供完成数量的标记字段  -->
+	<select id="queryHungProgress4sys" resultClass="dto" parameterClass="dto">
+		select a.*,b.mem as member_inline,c.area,c.factory from
+		(select workdate,sum(qty)as amount,line_number as team,po as style_no from toerp_emplwork   where is_completed ='true' 
+		<dynamic>
+			<isNotEmpty prepend="and" property="cur_date">
+				workdate=#cur_date#
+			</isNotEmpty>
+		</dynamic>
+		group by workdate,line_number,po) a 
+		left join 
+		(select workdate,count(distinct employee_uid)as mem,line_number from toerp_emplwork  group by workdate,line_number) b on a.team = b.line_number and a.workdate=b.workdate  
+		left join 
+		line_detail c on substring(convert(varchar,a.team),1,1) =c.line_number_pre
+	</select>
+	
+	
+	
+</sqlMap>

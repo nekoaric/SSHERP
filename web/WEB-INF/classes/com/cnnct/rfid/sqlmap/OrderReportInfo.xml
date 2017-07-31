@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<sqlMap>
+    <typeAlias alias="dto"
+               type="org.eredlab.g4.ccl.datastructure.impl.BaseDto"/>
+    <!-- 查询所有设计完单报告数量信息 -->
+    <select id="queryNumColumn4orderReport" parameterClass="dto" resultClass="dto" remapResults="true">
+        select distinct param 
+        from  ord_report_list 
+        where type = '1' and instr(param,'_name')=0
+        and ord_report_no in (select ord_report_no from ord_report_list where data in($order_id$) and type=4)
+    </select>
+    <!--       查询订单的完单信息        -->
+    <select id="queryOrders4sr" parameterClass="dto" resultClass="dto" remapResults="true">
+        select * from (select a.ord_report_no,a.order_id,a.style_no,a.cust_name,a.ins_num,a.ord_num,b.amount as product_num,c.amount as sew_num
+        from 
+          ord_report_info a
+          left join 
+            (select  a.ord_report_no,sum(b.amount) amount from  ord_report_list a left join 
+                ord_day_list b on a.data = b.order_id and state = '0' and nature ='14'
+	            where a.type = '4' 
+	            group by a.ord_report_no
+            ) b on a.ord_report_no=b.ord_report_no
+            left join 
+            (select  a.ord_report_no,sum(b.amount) amount
+            from ord_report_list a left join ord_day_list b on a.data = b.order_id and state = '0' and nature ='1'
+	            where a.type = '4'
+	            group by a.ord_report_no
+            ) c on a.ord_report_no = c.ord_report_no
+           where a.ord_report_no in (select ord_report_no from ord_report_list where type='4' and data in ($orders$))
+           )
+    </select>
+    <!--       查询确认人        -->
+    <select id="querySureOpr4ordReport" parameterClass="dto" resultClass="dto" remapResults="true">
+        select opr_id,ord_report_no 
+        from ord_report_list 
+        where ord_report_no = #ord_report_no# and type = #type#
+    </select>
+    <!--      删除完单报告         -->
+    <statement id="deleteOrdReport" parameterClass="dto">
+        begin
+            delete ord_report_info where ord_report_no = #ord_report_no#;
+            delete ord_report_list where ord_report_no = #ord_report_no#;
+        end;
+    </statement>
+    <!--       查询订单的额外信息        -->
+    <select id="queryOrderInfo4ordReport" parameterClass="dto" resultClass="dto" remapResults="true">
+        select * 
+	    from (select a.ord_seq_no as order_id,c.name,c.grp_id,b.amount as product_num,c.amount as sew_num
+	        from prod_ord_info a 
+	        left join prod_plan_info b on a.prod_ord_seq = b.prod_ord_seq
+	        left join sys_grps_info c on b.pack_fac = c.grp_id
+	        left join (select order_id,sum(amount) as amount from ord_day_list  where nature = '14' and state = '0' group by order_id) b on a.ord_seq_no = b.order_id
+	        left join (select order_id,sum(amount) as amount from ord_day_list  where nature = '1' and state = '0' group by order_id) c on a.ord_seq_no = c.order_id
+	        where a.ord_seq_no in ($order_id$)
+	    )
+    </select>
+    <!--       订单号查询完单报告号        -->
+    <select id="queryOrdReportNo4orderId" parameterClass="dto" resultClass="dto" remapResults="true">
+        select ord_report_no 
+        from ord_report_list
+        where type = '4' and data = #order_id#
+    </select>
+    <statement id="delStatement4ordReportNo" parameterClass="dto">
+        begin
+            delete  ord_report_info where ord_report_no = #ord_report_no#;
+            delete  ord_report_list where ord_report_no = #ord_report_no# and type = '1';
+            delete  ord_report_list where ord_report_no = #ord_report_no# and type = '4';
+            delete  ord_report_list where ord_report_no = #ord_report_no# and type = '5';
+            delete  ord_report_list where ord_report_no = #ord_report_no# and type = '2' and opr_id = #account#;
+            delete  ord_report_list where ord_report_no = #ord_report_no# and type = '3' and opr_id = #account#;
+            delete  ord_report_list where ord_report_no = #ord_report_no# and type in ('6','7','8');
+        end;
+    </statement>
+    <!--       查询完单报告-PO号        -->
+    <select id="queryOrdReportInfo4PO" parameterClass="dto" resultClass="dto" remapResults="true">
+        select * from 
+		(select a.prod_ord_seq,a.ord_seq_no as order_id,a.style_no,b.cust_id,b.cust_name ,c.ord_num,c.ins_num
+		from prod_ord_info a,bas_cust_list b,
+		              (select sum(ord_num)as ord_num,sum(ins_num) as ins_num,ord_seq_no as order_id from prod_bas_info where state = '0' group by ord_seq_no )c
+		            where a.ord_seq_no = c.order_id and a.cust_id = b.cust_id and  a.ord_seq_no in 
+		            (select data from ord_report_list 
+		            where type='4' and ord_report_no = #ord_report_no#)
+            )
+    </select>
+    <!--       查询完单报告-工厂     讨论后确定  -->
+    <select id="queryOrdReportInfo4factory" parameterClass="dto" resultClass="dto" remapResults="true">
+        select a.prod_ord_seq,a.ord_seq_no as order_id,a.style_no,b.cust_id,b.cust_name from prod_ord_info a,bas_cust_list b
+            where a.cust_id = b.cust_id and  ord_seq_no in 
+            (select data from ord_report_list 
+            where param = 'order_id' and type='4' and ord_report_no = #ord_report_no#)
+    </select>
+    <!-- 查询完单报告 -->
+    <select id="queryOrdReportInfo4baseinfo" parameterClass="dto" resultClass="dto" remapResults="true">
+        select * from (select seq_no,to_number(ord_report_no) as ord_report_no,fac_name,style_no,order_id,cust_name,ord_num,
+            ins_num,product_num,sew_num,sr_num,opr_id,opr_time,open_id,open_time,report_remark, 
+            (select user_name from sys_user_info where ord_report_info.open_id = sys_user_info.account) as open_name
+        from ord_report_info 
+        <dynamic prepend="where">
+            <isNotEmpty prepend="and" property="ord_report_no">
+                ord_report_no = #ord_report_no#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="orders">
+                ord_report_info.ord_report_no 
+                in (select ord_report_no from ord_report_list 
+                    where data in ($orders$) 
+                    and type = '4')
+            </isNotEmpty>
+        </dynamic>)
+         order by ord_report_no desc
+    </select>
+    <!-- 查询完单报告附加信息 -->
+    <select id="queryOrderReport4detailInfo" parameterClass="dto" resultClass="dto" remapResults="true">
+        select a.seq_no,to_number(a.ord_report_no) as ord_report_no,a.param,a.data,a.type,a.opr_id
+            ,a.opr_time,b.user_name as opr_name
+        from ord_report_list a left join sys_user_info b on a.opr_id = b.account
+        where
+                a.ord_report_no = #ord_report_no#
+            <isNotEmpty prepend="and" property="type">
+                a.type = #type#
+            </isNotEmpty>
+    </select>
+    <!--  查询完单序号  -->
+    <select id="querySeqNo4OrderReport" parameterClass="dto" resultClass="Integer" remapResults="true">
+        select seq_ord_report.nextval from dual
+    </select>
+<!--  新增完单报告基础信息  -->
+    <insert id="insertOrdReportInfo4baesinfo" parameterClass="dto">
+        insert into ord_report_info(seq_no,ord_report_no,fac_name,style_no,order_id,cust_name,ord_num,ins_num,sew_num,
+                product_num,sr_num,opr_id,opr_time,open_id,open_time,report_remark)
+               values(seq_ord_report_info.nextval,#ord_report_no#,#fac_name#,#style_no#,#order_id#,#cust_name#,#ord_num#,
+                #ins_num#,#sew_num#,#product_num#,#sr_num#,#opr_id#,#opr_time#,#open_id#,#open_time#,#report_remark#)
+    </insert>
+<!--  新增完单报告其他信息  -->
+    <insert id="insertOrdReportInfo4listinfo" parameterClass="dto">
+        insert into ord_report_list(seq_no,ord_report_no,param,data,type,opr_id,opr_time)
+        values(seq_ord_report_list.nextval,#ord_report_no#,#param#,#data#,#type#,#opr_id#,#opr_time#)
+    </insert>
+</sqlMap>
+
+
+
+
+
+

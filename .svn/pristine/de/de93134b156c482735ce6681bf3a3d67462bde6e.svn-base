@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<!-- 资源模型手工映射SQL语句 -->
+<sqlMap>
+	<typeAlias alias="dto"
+		type="org.eredlab.g4.ccl.datastructure.impl.BaseDto" />
+	<!--查询 -->
+	<select id="getHungProgress" parameterClass="Dto" resultClass="Dto" remapResults="true">
+		select a.* ,d.cust_name
+		from shipment_summary_info a 
+		left join
+		bas_cust_list d on d.cust_id=a.cust_id 
+		where a.delete_state=0 
+		<dynamic >
+			<isNotEmpty property="query_date" prepend="and">
+				work_date like '%$query_date$%' 
+			</isNotEmpty>
+		</dynamic>
+		order by work_date desc
+	</select>
+	
+	<!-- 查询订单基本信息 -->
+	<select id="getOrdInfo">
+		select a.ord_seq_no,a.style_no,a.cust_id,a.leave_deal_date,a.fob_deal_date,a.transpotation_way
+		b.real_cut_num,b,pack_accept_num,b.f_product_num,
+		c.country 
+		from prod_ord_info a 
+		left join prodord_sche_list b on a.ord_seq_no=b.order_id 
+		left join prod_bas_info c on a.ord_seq_no=c.ord_seq_no 
+		<dynamic prepend="where">
+			<isNotEmpty property="ord_seq_no">
+				a.ord_seq_no=#ord_seq_no#
+			</isNotEmpty>
+			<isNotEmpty property="ords">
+				a.ord_seq_no in (#ords#)
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	
+	<!-- 保存 -->
+	<insert id="insertFinanceSendOut" parameterClass="Dto" >
+		insert into shipment_summary_info  
+		(SEQ_NO,FOB_DEAL_DATE,LEAVE_DEAL_DATE,PROD_ORD_SEQ,PRODUCT_NUM,CUT_NUM,BACH_ACCEPT_NUM,DELETE_STATE,OPR_STAFF,OPR_TIME,PRODUCT_NUM_FIN,CUT_NUM_FIN,BACH_ACCPET_NUM_FIN,CUST_ID,STYLE_NO,COUNTRY,TRANSPORTATION_WAY)  
+		values 
+		(#seq_no#,#fob_deal_date#,#leave_deal_date#,#prod_ord_seq#,#product_num#,#cut_num#,#bach_accept_num#,'0',#opr_staff#,#opr_time#,#product_num_fin#,#cut_num_fin#,#bach_accpet_num_fin#,#cust_id#,#style_no#,#country#,#transportation_way#)
+	</insert>
+	
+	<!-- update -->
+	<update id="updateFinanceSendOut" parameterClass="Dto">
+		update shipment_summary_info   
+		set PRODUCT_NUM=#product_num#,
+		CUT_NUM=#cut_num#,
+		BACH_ACCEPT_NUM=#bach_accept_num#,
+		OPR_TIME=#opr_time#,
+		STYLE_NO=#style_no#
+		<dynamic>
+			<isNotEmpty property="delete_state" prepend=",">
+				DELETE_STATE=#delete_state# 
+			</isNotEmpty>
+		</dynamic>
+		where seq_no=#seq_no#
+	</update>
+		
+	
+</sqlMap>

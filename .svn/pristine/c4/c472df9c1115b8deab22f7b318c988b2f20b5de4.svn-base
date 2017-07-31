@@ -1,0 +1,480 @@
+package com.cnnct.util;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Map.Entry;
+
+/**
+ * rifd系统的数量性质处理，转换工具类
+ * @author zhouww
+ * @since 2014.12.16
+ * <br>修改： 1)修改属性名，更加直观，易读
+ *  2)修改方法名,注释：增加方法的可读性，易用
+ * <br>功能 : 数量性质中文名称，英文名称，代码相互之间的转换。
+ * <br> 
+ * <br> 意见：可考虑采用配置文件来加载，配置文件放在natureProperty路径下
+ * <br> natureCode,NC : 数量性质代码
+ * <br> natureEn : 数量性质英文名
+ * <br> natureZh : 数量性质中文名
+ * <br> rollback,rb : 对回退数量性质的标识
+ */
+public class NatureUtil{
+	//流程
+    private final static List<String> natureCode = new ArrayList<String>();
+    //名 中文-流程
+    private final static Map<String,String> natureZh2natureCode = new HashMap<String,String>();
+    //流程-名 英文
+    private final static Map<String,String> natureCode2natureEn = new HashMap<String, String>();
+    //短缺名-短缺部门
+    private final static Map<String,String> shortEn2shortZh = new HashMap<String,String>();
+    //流程-工厂名
+    private final static Map<String,String> natureCode2natureFac = new HashMap<String, String>();
+    //回退 ：回退名称-流程代码
+    private final static Map<String,String> natureZh2natureCode4rb = new HashMap<String,String>();
+    //回退：回退代码对应的数据处理流程
+    private final static Map<String,List<String>> natureCode2actionNature4rb = new HashMap<String,List<String>>();
+    //回退：回退流程对应的正常流程
+    private final static Map<String,String> rollBackNC2normalNC = new HashMap<String,String>();
+    static{
+        initNatureCode2natureEn();
+        initNatureCode();
+        initNatureZh2natureCode();
+        initRollback();
+        initRollbackAction();
+        initRollback2nature();
+    }
+    
+    //~~INIT
+    /**
+     * 初始化回退数量性质
+     */
+    public static void initRollback(){
+        natureZh2natureCode4rb.clear();
+        natureZh2natureCode4rb.put("缝制退裁片", "80");
+        natureZh2natureCode4rb.put("水洗退缝制", "81");
+        natureZh2natureCode4rb.put("后整退水洗", "82");
+        natureZh2natureCode4rb.put("后整退缝制", "83");
+        natureZh2natureCode4rb.put("成品退后整", "84");
+        natureZh2natureCode4rb.put("B品退后整", "85");
+    }
+    /**
+     * 初始化回退数量操作数量性质
+     */
+    public static void initRollbackAction(){
+        natureCode2actionNature4rb.clear();
+        //缝制退裁片
+        {
+            List<String> subList = new ArrayList<String>();
+            subList.add("2");
+            natureCode2actionNature4rb.put("80", subList);
+        }
+        //水洗退缝制
+        {
+            List<String> subList = new ArrayList<String>();
+            subList.add("13");
+            subList.add("4");
+            natureCode2actionNature4rb.put("81", subList);
+        }
+        //后整退水洗
+        {
+            List<String> subList = new ArrayList<String>();
+            subList.add("5");
+            subList.add("6");
+            natureCode2actionNature4rb.put("82",subList);
+        }
+        //后整退缝制
+        {
+            List<String> subList = new ArrayList<String>();
+            subList.add("6");
+            subList.add("3");
+            natureCode2actionNature4rb.put("83",subList);
+        }
+        //成品退后整
+        {
+            List<String> subList = new ArrayList<String>();
+            subList.add("7");
+            subList.add("10");
+            natureCode2actionNature4rb.put("84",subList);
+        }
+        //B品退后整
+        {
+            List<String> subList = new ArrayList<String>();
+            subList.add("8");
+            subList.add("11");
+            natureCode2actionNature4rb.put("85", subList);
+        }
+    }
+    
+    /**
+     * 初始化流程
+     */
+    public static void initNatureCode(){
+        natureCode.clear();
+    	//顺序不能改变:按照流程循序来处理
+        natureCode.add("1");
+        natureCode.add("2");
+        natureCode.add("3");
+        natureCode.add("13");
+        natureCode.add("4");
+        natureCode.add("5");
+        natureCode.add("6");
+        natureCode.add("7");
+        natureCode.add("8");
+        natureCode.add("9");
+        natureCode.add("10");
+        natureCode.add("11");
+        natureCode.add("12");
+        natureCode.add("14");
+        natureCode.add("15");
+        natureCode.add("16");
+        natureCode.add("17");
+    }
+    /**
+     * 初始化流程表达和流程标示的关系
+     */
+    public static void initNatureZh2natureCode(){
+        natureZh2natureCode.clear();
+        //顺序可以改变
+        natureZh2natureCode.put("裁出数量", "1");//real_cut_num
+        natureZh2natureCode.put("缝制领片", "2");//draw_num
+        natureZh2natureCode.put("缝制下线", "3");//sew_num
+        natureZh2natureCode.put("水洗收货", "4");//bach_accept_num
+        natureZh2natureCode.put("水洗移交", "5");//bach_delivery_num
+        natureZh2natureCode.put("后整收货", "6");//pack_accept_num
+        natureZh2natureCode.put("移交成品", "7");//f_product_num
+        natureZh2natureCode.put("移交B品", "8");//b_product_num
+        natureZh2natureCode.put("收成品", "10");//receive_f_product
+        natureZh2natureCode.put("收B品", "11");//receive_b_product
+        natureZh2natureCode.put("中间领用","12");//middle_take
+        natureZh2natureCode.put("送水洗", "13");//sew_delivery_num
+        natureZh2natureCode.put("标签解绑", "9");
+        natureZh2natureCode.put("出运成品", "14");//sendout_f_product
+        natureZh2natureCode.put("出运B品", "15");//sendout_b_product
+        natureZh2natureCode.put("B品库-收B品数", "16");//receive_b_depot
+        natureZh2natureCode.put("B品库-出B品数","17");//sendout_b_depot
+    }
+    /**
+     * 初始化流程标识和流程名称的关系
+     */
+    public static void initNatureCode2natureEn(){
+        natureCode2natureEn.clear();
+    	//顺序可以改变
+        natureCode2natureEn.put("1", "real_cut_num");
+        natureCode2natureEn.put("2", "draw_num");
+        natureCode2natureEn.put("3", "sew_num");
+        natureCode2natureEn.put("4", "bach_accept_num");
+        natureCode2natureEn.put("5", "bach_delivery_num");
+        natureCode2natureEn.put("6", "pack_accept_num");
+        natureCode2natureEn.put("7", "f_product_num");
+        natureCode2natureEn.put("8", "b_product_num");
+        natureCode2natureEn.put("10", "receive_f_product");
+        natureCode2natureEn.put("11", "receive_b_product");
+        natureCode2natureEn.put("12", "middle_take");
+        natureCode2natureEn.put("13", "sew_delivery_num");
+        natureCode2natureEn.put("14", "sendout_f_product");
+        natureCode2natureEn.put("15", "sendout_b_product");
+        natureCode2natureEn.put("16", "receive_b_depot");
+        natureCode2natureEn.put("17", "sendout_b_depot");
+    }
+    /**
+     * 初始化短缺部门信息
+     */
+    public static void initshortEn2shortZh(){
+        shortEn2shortZh.clear();
+        shortEn2shortZh.put("draw_short_num","缝制部门");
+        shortEn2shortZh.put("sew_short_num","缝制部门");
+        shortEn2shortZh.put("sew_delivery_short","缝制部门");
+        shortEn2shortZh.put("bach_accept_short_num","水洗工厂");
+        shortEn2shortZh.put("bach_delivery_short_num","水洗工厂");
+        shortEn2shortZh.put("pack_accept_short_num","水洗工厂");
+        shortEn2shortZh.put("product_short_num","后整部门");
+        shortEn2shortZh.put("receive_f_product_short","后整部门");
+        shortEn2shortZh.put("receive_b_product_short","后整部门");
+        shortEn2shortZh.put("sendout_f_short", "后整部门");
+        shortEn2shortZh.put("sendout_b_short", "后整部门");
+    }
+    /**
+     * 初始化流程和对应短缺工厂字段
+     */
+    public static void initNatureCode2natureFacMap(){
+        natureCode2natureFac.clear();
+        natureCode2natureFac.put("1", "real_cut_fac");
+        natureCode2natureFac.put("2", "draw_fac");
+        natureCode2natureFac.put("3", "sew_fac");
+        natureCode2natureFac.put("4", "bach_accept_fac");
+        natureCode2natureFac.put("5", "bach_delivery_fac");
+        natureCode2natureFac.put("6", "pack_accept_fac");
+        natureCode2natureFac.put("7", "f_product_fac");
+        natureCode2natureFac.put("8", "b_product_fac");
+        natureCode2natureFac.put("10", "receive_f_fac");
+        natureCode2natureFac.put("11", "receive_b_fac");
+        natureCode2natureFac.put("12", "middle_take_fac");
+        natureCode2natureFac.put("13", "sew_delivery_fac");
+        natureCode2natureFac.put("14", "sendout_f_fac");
+        natureCode2natureFac.put("15", "sendout_b_fac");
+    }
+    
+    /**
+     * 初始化退货流程对应的正常流程的流程
+     */
+    public static void initRollback2nature(){
+        rollBackNC2normalNC.clear();
+        rollBackNC2normalNC.put("80", "2");
+        rollBackNC2normalNC.put("81", "4");
+        rollBackNC2normalNC.put("82", "6");
+        rollBackNC2normalNC.put("83", "6");
+        rollBackNC2normalNC.put("84", "10");
+        rollBackNC2normalNC.put("85", "11");
+    }
+    
+    // ~~~~~~~~~~~~~~~~~~~~ 初始化函数结束 
+    
+    
+    
+    /**
+     * 获取退货流程的起始流程(仅限回退流程)
+     * @param rollbacknature 回退流程代码
+     * @return 正常流程代码
+     */
+    public static String parseNC2NormalNature4rb(String rollbacknature){
+        return rollBackNC2normalNC.get(rollbacknature);
+    }
+    /**
+     * 获取退货流程
+     * @return 所有退货数量性质的集合
+     */
+    public static List<String> getRollbackNature(){
+        List<String> rollbackList = new ArrayList<String>();
+        Set<Entry<String,String>> set = natureZh2natureCode4rb.entrySet();
+        for(Entry<String,String> entry : set){
+            rollbackList.add(entry.getValue());
+        }
+        return rollbackList;
+    }
+    /**
+     * 通过数量性质获取流程的名字
+     * @param nature 回退数量性质
+     * @return 回退数量性质中文名称
+     */
+    public static String parseNC2natureZh4rb(String nature){
+        Set<Entry<String,String>> set = natureZh2natureCode4rb.entrySet();
+        for(Entry<String,String> entry : set){
+            if(nature.equals(entry.getValue())){
+                return entry.getKey();
+            }
+        }
+        return "";
+    }
+    
+    /**
+     * 流程标识转化为数量性质名称
+     * @param nature 正常数量性质
+     * @return 正常数量性质英文名称
+     */
+    public static String parseNC2natureEn(String nature){
+       return natureCode2natureEn.get(nature); 
+    }
+
+    /**
+     * 正常流程的数量性质英文名称转换数量性质代码
+     * @param numname 数量性质英文名称
+     * @return 数量性质代码
+     */
+    public static String parseNatureEn2natureCode(String numname){
+        String nature = "";
+        Set<String> keySet = natureCode2natureEn.keySet();
+        for(String nat : keySet){
+            String value = natureCode2natureEn.get(nat);
+            if(value.equals(numname)){
+                nature = nat;
+                break;
+            }
+        }
+        return nature;
+    }
+    
+    /**
+     * 数量性质中文转代码(回退流程和正常流程)
+     * @param name 数量性质中文名称
+     * @return 数量性质代码
+     */
+    public static String parseNatureZh2natureCode(String name){
+        String nature = natureZh2natureCode.get(name);
+        if(nature==null){
+        	nature = natureZh2natureCode4rb.get(name);	//增加回退的判断
+        }
+        return nature==null ? "":nature;
+    }
+    
+    /**
+     * 数量性质代码转换中文名称
+     * @param nature 数量性质代码
+     * @return 数量性质中文名称
+     */
+    public static String parseNC2natureZh(String nature){
+       String name = "";
+       Set<String> keySet = natureZh2natureCode.keySet();
+       for(String keyName:keySet){
+           if(natureZh2natureCode.get(keyName).equals(nature)){
+               name = keyName;
+               break;
+           }
+       }
+       if(name.equals("")){	//如果是空的name，那么遍历回退流程
+    	   for(Entry<String,String> entry : natureZh2natureCode4rb.entrySet()){
+    		   String value = entry.getValue();
+               if(value.equals(nature)){
+                   name = entry.getKey();
+                   break;
+               }
+           }
+       }
+       return name;
+    }
+    
+    /**
+     * 判断数量性质<br/>
+     * n2是否是n1后的流程<br/>
+     * n2==null return false<br/>
+     * n1==null&&n2!=null return true<br/>
+     * n2>n1 return true<br/>
+     * n2<=n1 return false<br/>
+     * @param n1 数量性质1 
+     * @param n2 数量性质2
+     * @return
+     */
+    public static boolean compareNature(String n1,String n2){
+        if(n2==null){
+            return false;
+        }
+        if(n1==null){
+            return true;
+        }
+        if(natureCode.indexOf(n1)<natureCode.indexOf(n2)){
+            return true;
+        }
+        return false;
+    }
+    
+    /**
+     * 判断数量性质2:可以传入流程代码，也可以传入流程名称<br/>
+     * n2的流程在n1流程后面 return true  其他的 return false</br>
+     * 传入的数量性质不合规 return false</br>
+     * @param n1 数量性质1 
+     * @param n2 数量性质2
+     * @return
+     */
+    public static boolean compareNature2(String n1,String n2){
+        //判断数据的正确性
+        if(natureCode.indexOf(n1)==-1 && "".equals(natureZh2natureCode.get(n1))){
+            return false;
+        }
+        if(natureCode.indexOf(n2)==-1 && "".equals(natureZh2natureCode.get(n2))){
+            return false;
+        }
+        n1 = natureCode.indexOf(n1)==-1?natureZh2natureCode.get(n1):n1;
+        n2 = natureCode.indexOf(n2)==-1?natureZh2natureCode.get(n2):n2;
+        //判断流程顺序
+        if(natureCode.indexOf(n1)<natureCode.indexOf(n2)){
+            return true;
+        }
+        return false;
+    }
+    /**
+     * 获取流程的前一个流程
+     * @param n1
+     * @return
+     */
+    public static String getBeforeNature(String n1){
+    	String nature = "";
+    	boolean isNotFlag = natureCode.indexOf(n1)==-1; 
+    	n1 = isNotFlag?parseNatureEn2natureCode(n1):n1;
+    	int index = natureCode.indexOf(n1);
+    	if(index==0){
+    		return "";
+    	}
+    	int befIndex = index-1;
+    	nature = natureCode.get(befIndex);
+    	if(isNotFlag){
+    		//如果传入的是名称返回名称
+    		nature = parseNC2natureEn(nature);
+    	}
+    	return nature;
+    }
+    /**
+     * 通过流程来获取此短缺流程的工厂代码
+     * @param nature
+     * @return
+     */
+    public static String getShortFac(String nature){
+    	return natureCode2natureFac.get(nature);
+    }
+    /**
+     * 获取流程名字
+     * @return
+     * getNumname
+     */
+    public static List<String> getNatureEn(){
+        List<String> numname = new ArrayList<String>();
+        int natureSize = natureCode.size();
+        for(int i=0;i<natureSize;i++){
+            String name = natureCode2natureEn.get(natureCode.get(i));
+            if(name != null){
+               numname.add(name);
+            }
+        }
+        return numname;
+        
+    }
+    
+    /**
+     * 获取退货流程对应处理的数量性质
+     * @param nature
+     * @return
+     */
+    public static List<String> getActionNature4rollback(String nature){
+    	List<String> result = natureCode2actionNature4rb.get(nature);
+        return new ArrayList<String>(result);
+    }
+    
+    /**
+     * 获取回退数量性质
+     * @return
+     */
+    public static Map<String, List<String>> getNatureCode2actionNature4rollback() {	//返回的是clone数据
+    	Map<String,List<String>> resultMap = new HashMap<String, List<String>>();
+    	for(Entry<String,List<String>> entry : natureCode2actionNature4rb.entrySet()){
+    		List<String> value = new ArrayList<String>(entry.getValue());
+    		resultMap.put(entry.getKey(), value);
+    	}
+        return resultMap;
+    }
+    /**
+     * 通过短缺名获取短缺部门
+     * @param shortname
+     */
+    public static String parseShortEn2shortZh(String shortname){
+    	return shortEn2shortZh.get(shortname);
+    }
+    //~~GET
+    public static List<String> getNatureCode() {
+    	return new ArrayList<String>(natureCode);
+    }
+
+	public static Map<String, String> getNatureZh2natureCode() {
+		return new HashMap<String,String>(natureZh2natureCode);
+    }
+
+	public static Map<String, String> getNatureCode2natureEn() {
+		return new HashMap<String,String>(natureCode2natureEn);
+    }
+	
+	public static Map<String, String> getShortEn2shortZh() {
+		return new HashMap<String,String>(shortEn2shortZh);
+    }
+    
+    
+}

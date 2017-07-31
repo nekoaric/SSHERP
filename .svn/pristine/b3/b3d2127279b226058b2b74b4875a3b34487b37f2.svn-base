@@ -1,0 +1,91 @@
+@CHARSET "UTF-8";
+
+BODY { /*
+	SCROLLBAR-FACE-COLOR: #FFFFFF;
+	SCROLLBAR-HIGHLIGHT-COLOR: #61BFF8;
+	SCROLLBAR-SHADOW-COLOR: #61BFF8;
+	SCROLLBAR-3DLIGHT-COLOR: #FFFFFF;
+	SCROLLBAR-ARROW-COLOR: #61BFF8;
+	SCROLLBAR-TRACK-COLOR: #FFFFFF;
+	SCROLLBAR-DARKSHADOW-COLOR: #FFFFFF;
+	SCROLLBAR-BASE-COLOR: #FFFFFF
+	*/
+	font-family: "宋体";
+	font-size: 13px;
+}
+
+/* 解决IE下PNG图片透明Bug */
+.IEPNG {
+	behavior: url(./resource/htc/iepngfix.htc);
+}
+
+/* 管理首页Frame样式 */
+.mainFrame {
+	width: 100%;
+	height: 100%;
+	border-style: none;
+}
+
+/** 如下为解决Ext表单元素禁用状态字体模糊的办法
+  *  IE下还是解决不了
+  */
+.x-custom-field-disabled {
+	color: black !important;
+	color: black;
+	background: #F0F8FF;
+}
+
+/* 树节点被选中后的状态 */
+.node_checked .x-tree-node-anchor span {
+	text-decoration: line-through;
+	color: #777;
+}
+
+.node_checked_bold .x-tree-node-anchor span {
+    font-weight:bold;
+}
+
+.font12{
+	font-family: "宋体";
+	font-size: 12px
+}
+
+.user {
+	background: url(../image/ext/user.gif) no-repeat 2px 2px;
+}
+
+.key {
+	background: url(../image/ext/key.gif) no-repeat 2px 2px;
+}
+
+.key,.user {
+	background-color: #FFFFFF;
+	padding-left: 20px;
+	font-size: 12px;
+}
+
+span.commoncss{
+	font-weight:normal;
+}
+
+.mustinput{
+	color:blue;
+}
+
+@media screen and (-webkit-min-device-pixel-ratio:0){
+    td { box-sizing: border-box; }
+}
+
+/*may 修改 更改页面文字大小*/
+body, .ext-el-mask-msg div, .loading-indicator, .x-tab-strip span.x-tab-strip-text, .x-form-invalid-msg, .x-small-editor .x-form-field, .x-fieldset legend, .x-btn, .x-btn button, .x-toolbar td, .x-toolbar span, .x-toolbar input, .x-toolbar div, .x-toolbar select, .x-toolbar label, .x-grid3-hd-row td, .x-grid3-row td, .x-grid3-summary-row td, .x-grid3-topbar, .x-grid3-bottombar, .x-grid-group-hd div, .x-grid-empty, .x-dd-drag-ghost, .x-tree-node, .x-date-middle, .x-date-left, .x-date-right, .x-date-inner a, .x-date-mp td, .x-date-mp-btns button, .x-tip .x-tip-mc, .x-tip .x-tip-header-text, .x-tip .x-tip-body, .x-menu-list-item, #x-debug-browser .x-tree .x-tree-node a span, .x-combo-list-hd, .x-combo-list-small .x-combo-list-item, .x-panel-header, .x-panel-tl .x-panel-header, .x-panel-mc, .x-window-tl .x-window-header, .x-window-mc, .x-progress-text, .x-date-inner th, .x-date-mmenu .x-menu-item {
+    font-size:12px;
+}
+.system-font-size,.x-form-item label.x-form-item-label,.x-form-item label.x-form-item-tdlabel,.x-form-item td.x-form-label-thirdtd,.x-form-item td.x-form-label-secondtd .zj-label,.x-form-item td.x-form-label-secondtd .zj-label *,.x-zjbox-item label,.x-window-dlg .ext-mb-text,.x-window-dlg .x-window-header-text{
+    font-size:12px;
+}
+.x-form-field,.zj-el-mask-msg div {
+    font:normal 12px tahoma, arial, helvetica, sans-serif;
+}
+.x-window-header-text{
+    font-size:12px;
+}

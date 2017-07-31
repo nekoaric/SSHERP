@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<!-- 角色管理与授权手工映射SQL语句 -->
+<sqlMap>
+    <typeAlias alias="dto" type="org.eredlab.g4.ccl.datastructure.impl.BaseDto"/>
+
+    <!-- 角色管理与授权-角色列表 -->
+    <select id="queryRolesForManage" parameterClass="map" resultClass="dto" remapResults="true">
+        select a.role_id,a.role_name,a.dept_id,a.role_type, a.locked, a.remark,a.opr_date,a.state,
+        a.flag,b.opr_id,b.opr_name,c.dept_name from sys_role_info a
+        left join (select account as opr_id,user_id,user_name as opr_name from sys_user_info) b on a.opr_id = b.user_id
+        left join sys_dept_info c on a.dept_id = c.dept_id
+        where a.flag!='1'
+        <dynamic>
+            <isNotEmpty prepend="AND" property="role_type">
+                a.role_type in ($role_type$)
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="dept_id">
+                a.dept_id like '$dept_id$%'
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="role_name">
+                a.role_name like '%$role_name$%'
+            </isNotEmpty>
+        </dynamic>
+        order by a.role_id
+    </select>
+
+    <!-- 插入一条角色表记录 -->
+    <insert id="saveSysRoleInfo" parameterClass="dto">
+        insert into sys_role_info (role_id, role_name, dept_id,role_type,
+            locked, opr_id, opr_date, flag, state, remark)
+        values (seq_sys_role_info_role_id.nextval, #role_name#,#dept_id#, #role_type#,
+            #locked#, #opr_id#, #opr_date#, #flag#, #state#, #remark#)
+    </insert>
+
+    <!-- 删除角色表  -->
+    <delete id="deleteSysRoleInfoInRoleManage" parameterClass="map">
+        DELETE FROM sys_role_info WHERE role_id = #role_id#
+    </delete>
+
+    <!-- 删除角色菜单授权表  -->
+    <delete id="deleteSysRoleMenuAuthInRoleManage" parameterClass="map">
+        DELETE FROM sys_role_menuauth WHERE role_id = #role_id#
+    </delete>
+
+    <!-- 删除角色数据授权表  -->
+    <delete id="deleteSysRoleDataAuthInRoleManage" parameterClass="map">
+        DELETE FROM sys_role_dataauth WHERE role_id = #role_id#
+    </delete>
+
+    <!-- 删除人员授权表  -->
+    <delete id="deleteEauserauthorizeInRoleManage" parameterClass="map">
+        DELETE FROM sys_user_rolemap WHERE role_id = #role_id#
+    </delete>
+
+    <!-- 根据主键更新角色 -->
+    <update id="updateSysRoleInfo" parameterClass="dto">
+        UPDATE sys_role_info
+        <dynamic prepend="SET">
+            <isNotEmpty prepend="," property="role_name">
+                role_name = #role_name#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="user_type">
+                user_type = #user_type#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="dept_id">
+                dept_id = #dept_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="locked">
+                locked = #locked#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="flag">
+                flag = #flag#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="state">
+                state = #state#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="remark">
+                remark = #remark#
+            </isNotEmpty>
+        </dynamic>
+        WHERE role_id = #role_id#
+    </update>
+
+    <!-- 查询所有角色编号,名称 -->
+    <select id="getAllRole" parameterClass="map" resultClass="dto">
+        SELECT role_id as value,
+        role_name as text
+        FROM sys_role_info
+        where flag!='1'
+        <dynamic>
+            <isNotEmpty prepend="AND" property="role_type">
+                role_type in ($role_type$)
+            </isNotEmpty>
+        </dynamic>
+        order by role_id
+    </select>
+
+    <!-- 查询所有角色类型 -->
+    <select id="getAllRoleType" parameterClass="map" resultClass="dto">
+        SELECT code as value,
+        codedesc as text
+        FROM eacode where field='USERTYPE'
+        <isNotEmpty prepend="and" property="role_type">
+            code in ($role_type$)
+        </isNotEmpty>
+    </select>
+
+    <select id="selectCountEauserauthorize" parameterClass="map" resultClass="java.lang.Integer">
+        SELECT count(*) as count FROM sys_user_rolemap a WHERE a.role_id=#role_id#
+    </select>
+
+    <select id="getCountNameEarole" parameterClass="map" resultClass="java.lang.Integer">
+        select count(*) as count from sys_role_info a
+        where a.role_name=#role_name#
+        <isNotEmpty prepend="and" property="role_id">
+            a.role_id != #role_id#
+        </isNotEmpty>
+    </select>
+
+    <!-- 查询该角色已授权的菜单 -->
+    <select id="queryMenusInRoleManage" parameterClass="map" resultClass="dto">
+        select distinct a.menu_id, a.menu_name,a.icon_cls,a.parent_id,a.request,a.sort_no,a.leaf,
+        a.expanded, a.icon, a.shortcut, a.width, a.height, a.scroll_bar,b.authorize_level from
+        (select a.menu_id, b.menu_name, b.icon_cls,b.parent_id,b.request,b.sort_no, b.leaf,
+            b.expanded, a.authorize_level, b.icon, b.shortcut, b.width, b.height, b.scroll_bar
+            from sys_role_menuauth a left join  sys_menu_info b on a.menu_id = b.menu_id
+            where (a.authorize_level = '1' or a.authorize_level = '2')
+            and a.role_id in (select role_id from sys_user_rolemap  where user_id = #user_id#)
+            union
+            (select a.menu_id , b.menu_name, b.icon_cls,b.parent_id,b.request,b.sort_no, b.leaf,
+                b.expanded,a.authorize_level, b.icon, b.shortcut, b.width, b.height, b.scroll_bar
+                from sys_user_menuauth a, sys_menu_info b
+                where (a.authorize_level = '1' or a.authorize_level = '2')
+                and a.menu_id = b.menu_id and a.user_id = #user_id#
+            )
+        order by menu_id asc) a
+        left join
+        (select * from sys_role_menuauth  where role_id = #role_id#
+        <dynamic>
+            <isNotEmpty property="showMenu" prepend="and">
+                (authorize_level = '0' or authorize_level = '2')
+            </isNotEmpty>
+            <isNotEmpty property="manageMenu" prepend="and">
+                (authorize_level = '1' or authorize_level = '2')
+            </isNotEmpty>
+        </dynamic>) b on a.menu_id = b.menu_id
+        order by a.menu_id
+    </select>
+
+    <!-- 插入一条角色授权记录 -->
+    <insert id="insertSysRoleMenuAuth" parameterClass="dto">
+        INSERT INTO sys_role_menuauth (role_id, menu_id, authorize_level,authorize_id)
+        VALUES (#role_id#, #menu_id#, #authorize_level#,seq_sys_role_menuauth_id.nextval)
+    </insert>
+
+    <!-- 删除角色菜单授权  -->
+    <delete id="deleteSysRoleMenuAuth" parameterClass="map">
+        DELETE FROM sys_role_menuauth WHERE role_id = #role_id#
+    </delete>
+
+    <!-- 删除角色菜单组件授权  -->
+    <delete id="deleteSysRolePartAuth" parameterClass="map">
+        DELETE FROM sys_role_partauth WHERE role_id = #role_id#
+    </delete>
+
+    <!-- 插入一条角色用户关联记录 -->
+    <insert id="insertSysUserRoleMap" parameterClass="dto">
+        INSERT INTO sys_user_rolemap (
+        user_id, role_id, authorize_id)
+        VALUES ( #user_id#, #role_id#, seq_sys_user_rolemap_authorize_id.nexuval)
+    </insert>
+
+</sqlMap>

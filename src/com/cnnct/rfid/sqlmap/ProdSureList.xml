@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<sqlMap>
+    <typeAlias alias="dto"
+               type="org.eredlab.g4.ccl.datastructure.impl.BaseDto"/>
+    <!-- RFID电子标签最大编号查询  -->
+    <select id="queryMaxProdSureInfo" parameterClass="map" resultClass="Integer">
+        select max(cast(seq_no as int)) as seq_no from prod_sure_list
+    </select>
+
+    <select id="querySumAmount" parameterClass="map" resultClass="Integer">
+        select sum(amount) from prod_sure_list
+        <dynamic prepend="WHERE">
+            <isNotEmpty prepend="AND" property="product_id">
+                product_id = #product_id#
+            </isNotEmpty>
+        </dynamic>
+    </select>
+
+    <!-- 根据productid查询需要确认的产品信息  -->
+    <select id="queryProdBasInfo4Sure" parameterClass="map" resultClass="dto" remapResults="true">
+        select b.product_id,b.prod_ord_seq,b.color,b.in_length,b.waist,b.print,b.wash,
+        b.ord_num,b.ins_num,b.real_num,b.cut_num,b.remark,a.realCutNum
+        from prod_bas_info b
+        left join (select product_id,sum(amount) as realCutNum from prod_sure_list group by  product_id )a
+        on b.product_id=a.product_id
+        <dynamic prepend="WHERE">
+            <isNotEmpty prepend="AND" property="product_id">
+                b.product_id = #product_id#
+            </isNotEmpty>
+        </dynamic>
+    </select>
+
+    <!-- 根据productid查询已确认的产品信息  -->
+    <select id="queryProdSureList" parameterClass="map" resultClass="dto" remapResults="true">
+        select a.seq_no,a.id,a.dept_id,a.amount,a.nature,a.submit_name,a.submit_date,a.sure_name,
+        a.sure_date,a.remark,a.state,a.flag,b.style_no,b.article,c.dept_name
+        from prod_sure_list a
+        left join ord_bas_info b on a.id=b.order_id
+        left join sys_dept_info c on a.dept_id = c.dept_id
+        <dynamic prepend="WHERE">
+            <isNotEmpty prepend="AND" property="id">
+                a.id = #id#
+            </isNotEmpty>
+        </dynamic>
+    </select>
+
+    <select id="queryProdSureListForPageCount" parameterClass="map"  resultClass="java.lang.Integer">
+        SELECT count(*) FROM prod_sure_list
+        <dynamic prepend="WHERE">
+            <isNotEmpty prepend="AND" property="product_id">
+                product_id = #product_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="state">
+                state = '0'
+            </isNotEmpty>
+        </dynamic>
+    </select>
+
+    <select id="queryProdSureList4RecordNo" parameterClass="map"  resultClass="java.lang.Integer">
+        SELECT count(*) FROM prod_sure_list where remark = #record_no# and state = '0'
+    </select>
+
+    <!--  领片确认信息保存 -->
+    <insert id="insertProdSureList" parameterClass="dto">
+        insert into prod_sure_list
+        (seq_no,id,dept_id,amount,nature,submit_name,submit_date,sure_name,sure_date,flag,remark,state)
+        values
+        (#seq_no#,#id#,#dept_id#,#amount#,#nature#,#submit_name#,#submit_date#,#sure_name#,#sure_date#,
+        #flag#,#remark#,#state#)
+    </insert>
+</sqlMap>

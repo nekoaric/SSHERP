@@ -1,0 +1,112 @@
+
+
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <title>常州东奥服装有限公司RFID系统</title>
+    <meta http-equiv="keywords" content="常州东奥企业一卡通管理平台">
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta http-equiv="description" content="">
+    <meta http-equiv="pragma" content="no-cache">
+    <meta http-equiv="cache-control" content="no-cache, must-revalidate">
+    <meta http-equiv="expires" content="0">
+    <link rel="stylesheet" type="text/css" href="/resource/css/ext_icon.css"/>
+    <link rel="stylesheet" type="text/css" href="/resource/theme/default/resources/css/ext-all.css"/>
+    <script type="text/javascript" src="/resource/extjs3.1/adapter/ext/ext-base.js"></script>
+    <script type="text/javascript" src="/resource/extjs3.1/ext-all-debug.js"></script>
+    <script type="text/javascript" src="/resource/commonjs/ext-lang-zh_CN.js"></script>
+    <script type="text/javascript" src="/resource/commonjs/eredg4.js"></script>
+    <link rel="stylesheet" type="text/css" href="/resource/css/eredg4.css"/>
+    <script type="text/javascript" src="/resource/extjs3.1/ux/ux-all.js"></script>
+    <link rel="stylesheet" type="text/css" href="/resource/extjs3.1/ux/css/ux-all.css"/>
+    <script type="text/javascript" src="/resource/commonjs/FusionCharts.js"></script>
+    <script type="text/javascript">
+        var webContext = '';
+        var runMode = '1';
+        var ajaxErrCode = '999'
+        Ext.QuickTips.init();
+        Ext.form.Field.prototype.msgTarget = 'qtip';
+        Ext.BLANK_IMAGE_URL = '/resource/image/ext/s.gif';
+        Ext.Ajax.timeout = 120000; // 超时时间 120s
+
+        Ext.Ajax.on('requestexception', function(conn, response, options) {
+            if (response.status == ajaxErrCode) {
+                setTimeout(function(){
+                    //延时避免被failure回调函数中的aler覆盖
+                    Ext.MessageBox.alert('提示', '因长时间未操作，您的登录信息已被注销，请重新登录!', function() {
+                        parent.location.href = webContext + '/login.ered?reqCode=init';
+                    });
+                },200);
+            }
+        });
+    </script>
+</head>
+<style type="text/css">
+    #loading-mask {
+        Z-INDEX: 20000;
+        LEFT: 0px;
+        WIDTH: 100%;
+        POSITION: absolute;
+        TOP: 0px;
+        HEIGHT: 100%;
+        BACKGROUND-COLOR: white
+    }
+    #loading {
+        PADDING-RIGHT: 2px;
+        PADDING-LEFT: 2px;
+        Z-INDEX: 20001;
+        LEFT: 32%;
+        PADDING-BOTTOM: 2px;
+        PADDING-TOP: 2px;
+        POSITION: absolute;
+        TOP: 40%;
+        HEIGHT: auto
+    }
+    #loading IMG {
+        MARGIN-BOTTOM: 5px
+    }
+    #loading .loading-indicator {
+        PADDING-RIGHT: 10px;
+        PADDING-LEFT: 10px;
+        BACKGROUND: white;
+        PADDING-BOTTOM: 10px;
+        MARGIN: 0px;
+        FONT: 12px 宋体, arial, helvetica;
+        COLOR: #555;
+        PADDING-TOP: 10px;
+        HEIGHT: auto;
+        TEXT-ALIGN: center
+    }
+</style>
+<script type="text/javascript">
+    Ext.EventManager.on(window, 'load', function(){
+        setTimeout(
+                function() {
+                    Ext.get('loading').remove();
+                    Ext.get('loading-mask').fadeOut({remove:true});
+                }, 5);
+    });
+</script>
+<DIV id=loading-mask></DIV>
+<DIV id=loading>
+    <DIV class=loading-indicator><IMG style="MARGIN-RIGHT: 5px"
+                                      height=16
+                                      src="/resource/image/ajax.gif"
+                                      width=16 align=absMiddle>正在打开页面,请稍等...</DIV>
+</DIV>
+
+<script type="text/javascript" src="/cnnct/rfid/js/getOrdDaySche.js"></script>
+<body   >
+<!-- 由<eRedG4:flashReport/>标签生成的代码开始 -->
+<div id="mySC2DChart_div" class="x-hidden" align="center"></div>
+<script type="text/javascript">
+        var mySC2DChart_chart_object = new FusionCharts("/resource/fcf/Column2D.swf", "mySC2DChart", document.body.clientWidth, "450");
+        mySC2DChart_chart_object.setDataXML("<chart showValues='1' caption='Total Revenue of 20082009' numberPrefix='$' xAxisName='Quarter' yAxisName='Revenue' ><set value='235000' label='Quarter 1'/><set value='125100' label='Quarter 2'/><set value='334200' label='Quarter 3'/><set value='414500' label='Quarter 4'/></chart>");
+        mySC2DChart_chart_object.addParam("wmode","Opaque");
+        mySC2DChart_chart_object.render("mySC2DChart_div");
+</script>
+<!-- 由<eRedG4:flashReport/>标签生成的代码结束 -->
+</body>
+</html>

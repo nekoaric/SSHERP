@@ -1,0 +1,58 @@
+package com.cnnct.rfid.valide.prodOrd;
+
+import java.util.List;
+
+import org.eredlab.g4.bmf.base.IReader;
+import org.eredlab.g4.ccl.datastructure.Dto;
+import org.eredlab.g4.ccl.datastructure.impl.BaseDto;
+
+import com.cnnct.common.ApplicationException;
+import com.cnnct.dataInterface.ValideDataAdapter;
+import com.cnnct.util.G4Utils;
+import com.cnnct.util.TimeUtil;
+
+/**
+ * 重复数据的检测
+ * @author zhouww
+ * @since 2014-9-17
+ */
+public class ProdOrd2RedataValide extends ValideDataAdapter {
+
+    
+    public ProdOrd2RedataValide(){}
+    
+    public ProdOrd2RedataValide(Dto inDto,IReader iReader){
+        this.inDto = inDto;
+        this.iReader = iReader;
+    }
+    
+    @SuppressWarnings("unchecked")
+    public void valideDate() throws ApplicationException {
+        //提取需要验证的数据
+        String prod_ord_seq = inDto.getAsString("prod_ord_seq");
+        String ord_seq_no = inDto.getAsString("ord_seq_no");
+        //一个异常汇总信息
+        StringBuffer errsb= new StringBuffer();
+       
+        Dto parameterDto = new BaseDto();
+        parameterDto.put("prod_ord_seq", prod_ord_seq);
+        List prods = iReader.queryForList("queryProdOrdInfo",parameterDto);
+        if(prods.size()>0){
+            //throw new ApplicationException("生产通知单已经存在，请检查");
+            errsb.append("</br>生产通知单已经存在，请检查");
+        }
+        Dto dbDto = new BaseDto();
+        dbDto.put("order_id", ord_seq_no);
+        List ords = iReader.queryForList("queryOrdBasInfo",dbDto);
+        if(ords.size()>0){
+            //throw new ApplicationException("[订单已经存在，请检查]");
+        	errsb.append("</br>[订单已经存在，请检查]");
+        }
+        
+        String errMsg=errsb.toString();
+        if(errMsg.length()>0){
+        	throw new ApplicationException("</br>生产通知单"+prod_ord_seq+"(订单号"+ord_seq_no+")导入失败"+errMsg);
+        }
+    }
+
+}

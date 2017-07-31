@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<!-- 组织机构模型手工映射SQL语句 -->
+<sqlMap>
+    <typeAlias alias="userInfo" type="com.cnnct.sys.vo.UserInfoVo"/>
+    <typeAlias alias="dto"
+               type="org.eredlab.g4.ccl.datastructure.impl.BaseDto"/>
+    <select id="getUserInfo4account" parameterClass="dto" resultClass="dto">
+        select user_id,user_name,account,dept_id
+        from sys_user_info where account=#account#
+    </select>
+    <!-- 查询用户信息 -->
+    <select id="getLoginUserInfo" parameterClass="map" resultClass="userInfo">
+        select a.user_id as userid,a.user_name as username,a.user_type as usertype,a.account,a.password,a.sex,
+        a.dept_id as deptid,a.grp_id as grpid,a.state,a.per_no as perno,b.name as grpname,c.dept_name as deptname,
+        d.roleid,d.relativeauthority,d.prodauthority,e.user_id as userperm
+        from sys_user_info a
+        left join sys_grps_info b on a.grp_id = b.grp_id
+        left join sys_dept_info c on a.dept_id = c.dept_id
+        left join (
+            select a.user_id,a.role_id as roleid,b.other as relativeauthority,
+            case when c.num != 0 then 1 else 0 end as prodauthority
+            from sys_user_rolemap a
+            left join (select role_id,other from sys_role_dataauth where type =#relative_type#) b
+                on a.role_id = b.role_id
+            left join (select role_id,count(*) as num from sys_role_dataauth
+                where type =#prod_ord_type# group by role_id) c
+            on a.role_id = c.role_id) d
+        on a.user_id = d.user_id
+        left join (select distinct user_id from sys_user_dataauth) e on a.user_id = e.user_id
+        WHERE a.state !='1'
+        <dynamic>
+            <isNotEmpty prepend="AND" property="account">
+            (
+                a.account = #account#
+                <isNotEmpty prepend="or" property="login_mode">
+                    lower(replace(a.login_name,' ','')) = lower(replace(#account#,' ',''))
+                </isNotEmpty>
+                )
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="userid">
+                a.userid = #userid#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="password">
+                a.password = #password#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="grp_id">
+                a.grp_id = #grp_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="epc">
+                a.epc = #epc#
+            </isNotEmpty>
+        </dynamic>
+    </select>
+
+</sqlMap>

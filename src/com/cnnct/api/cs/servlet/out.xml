@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="GBK"?>
+<Envelope>
+    <Header>
+        <result sessionID=""/>
+        <result username="管理员"/>
+    </Header>
+    <Body>
+        <business>
+            <resultset name="productlist">
+                <row color="M9211" waist="29" in_length="32&quot;" finishnum="0" country=""/>
+                <row color="M9211" waist="30" in_length="32&quot;" finishnum="0" country=""/>
+                <row color="M9211" waist="31" in_length="32&quot;" finishnum="0" country=""/>
+                <row color="M9211" waist="32" in_length="32&quot;" finishnum="0" country=""/>
+                <row color="M9211" waist="33" in_length="32&quot;" finishnum="0" country=""/>
+                <row color="M9211" waist="34" in_length="32&quot;" finishnum="0" country=""/>
+                <row color="M9211" waist="36" in_length="32&quot;" finishnum="0" country=""/>
+                <row color="M9211" waist="38" in_length="32&quot;" finishnum="0" country=""/>
+                <row color="M9211" waist="32" in_length="34&quot;" finishnum="0" country=""/>
+                <row color="M9211" waist="33" in_length="34&quot;" finishnum="0" country=""/>
+                <row color="M9211" waist="34" in_length="34&quot;" finishnum="0" country=""/>
+                <row color="M9211" waist="36" in_length="34&quot;" finishnum="0" country=""/>
+                <row color="M9211" waist="38" in_length="34&quot;" finishnum="0" country=""/>
+                <row color="M9211" waist="33" in_length="36&quot;" finishnum="0" country=""/>
+                <row color="M9211" waist="34" in_length="36&quot;" finishnum="0" country=""/>
+                <row color="M9211" waist="36" in_length="36&quot;" finishnum="0" country=""/>
+                <row color="M9211" waist="28" in_length="30&quot;" finishnum="5" country="美国"/>
+                <row color="M9211" waist="29" in_length="30&quot;" finishnum="17" country="美国"/>
+                <row color="M9211" waist="30" in_length="30&quot;" finishnum="10" country="美国"/>
+                <row color="M9211" waist="31" in_length="30&quot;" finishnum="10" country="美国"/>
+                <row color="M9211" waist="32" in_length="30&quot;" finishnum="5" country="美国"/>
+                <row color="M9211" waist="33" in_length="30&quot;" finishnum="5" country="美国"/>
+                <row color="M9211" waist="34" in_length="30&quot;" finishnum="5" country="美国"/>
+                <row color="M9211" waist="36" in_length="30&quot;" finishnum="8" country="美国"/>
+                <row color="M9211" waist="38" in_length="30&quot;" finishnum="5" country="美国"/>
+            </resultset>
+            <resultset name="list">
+                <row listdata="美国|M9211|30&quot;|20|17|49|56|80|60|61|53|24"/>
+                <row listdata="|M9211|32&quot;|26|39|61|88|95|109|63|41"/>
+                <row listdata="|M9211|34&quot;|59|47|64|40|14"/>
+                <row listdata="|M9211|36&quot;|8|27|14"/>
+            </resultset>
+            <resultset name="oderinfo">
+                <row totalcount="1215" ord_seq_no="FA'13 69LRT1005-2" style="04514-0337" seq_no="2"
+                     prod_ord_seq="20000002" finishedcount="70" order_id="FA'13 69LRT1005-2" style_no="04514-0337"
+                     ord_num="1215"/>
+            </resultset>
+            <resultset name="head">
+                <row headname="国家" seq_no="1"/>
+                <row headname="颜色" seq_no="2"/>
+                <row headname="内长" seq_no="3"/>
+                <row headname="28" seq_no="4"/>
+                <row headname="29" seq_no="5"/>
+                <row headname="30" seq_no="6"/>
+                <row headname="31" seq_no="7"/>
+                <row headname="32" seq_no="8"/>
+                <row headname="33" seq_no="9"/>
+                <row headname="34" seq_no="10"/>
+                <row headname="36" seq_no="11"/>
+                <row headname="38" seq_no="12"/>
+            </resultset>
+        </business>
+    </Body>
+</Envelope>

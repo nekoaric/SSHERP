@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="
+	http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+	http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-2.5.xsd
+	http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-2.5.xsd">
+
+    <!-- 订单管理 -->
+    <bean id="ordRecordManager" parent="baseTransactionProxyG4">
+        <property name="target">
+            <bean class="com.cnnct.may.service.impl.OrdRecordManagerServiceImpl">
+                <property name="g4Dao" ref="g4Dao" />
+            </bean>
+        </property>
+    </bean>
+
+    <!-- 定时修改日记录 -->
+    <bean id="mayQuartz" class="com.cnnct.may.quartz.mayQuartz">
+        <property  name="g4Dao" ref="g4Dao" />
+    </bean>
+    <bean id="mayQuartzDetail" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject">
+            <ref local="mayQuartz"/>
+        </property>
+        <property name="targetMethod" value="updateOrdDayUpdateList">
+        </property>
+    </bean>
+    <!-- cron触发器 -->
+    <bean id="mayTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+        <property name="jobDetail">
+            <ref local="mayQuartzDetail"/>
+        </property>
+        <property name="cronExpression">
+            <value>0 0/5 * * * ?</value><!--每5分钟-->
+        </property>
+    </bean>
+    
+    <!-- 
+    <bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+        <property name="triggers">
+            <list>
+                <ref local="mayTrigger"/>
+            </list>
+        </property>
+    </bean>
+     -->
+
+</beans>

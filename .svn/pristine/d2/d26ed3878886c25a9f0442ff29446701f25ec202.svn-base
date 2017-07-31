@@ -1,0 +1,28 @@
+#eredg4 based Oracle Connection Configuration
+g4.jdbc.driverClassName=oracle.jdbc.driver.OracleDriver
+
+# 183\u5916\u7F51
+#g4.jdbc.url=jdbc:oracle:thin:@183.129.148.84:1523:orcl
+#g4.jdbc.username=jdurfid
+#g4.jdbc.password=jdurfid
+
+# ??
+#g4.jdbc.url=jdbc:oracle:thin:@172.16.200.183:1521:orcl
+#g4.jdbc.username=jdurfid_test
+#g4.jdbc.password=jdurfid_test
+
+# jdu\u5185\u7F51
+#g4.jdbc.url=jdbc:oracle:thin:@10.10.0.53:1523:orcl
+#g4.jdbc.username=jdurfid
+#g4.jdbc.password=jdurfid
+
+# \u672C\u673A
+#g4.jdbc.url=jdbc:oracle:thin:@192.168.1.104:1521:orcl
+#g4.jdbc.url=jdbc\:oracle\:thin\:@localhost\:1521\:orcl
+g4.jdbc.url=jdbc\:oracle\:thin\:@10.10.1.40\:1523\:orcl
+g4.jdbc.username=jdurfid
+g4.jdbc.password=jdurfid
+#g4.jdbc.username=jdurfid
+#g4.jdbc.password=jdurfid
+
+#

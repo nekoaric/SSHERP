@@ -1,0 +1,18 @@
+<html>
+<head></head>
+<body>
+<pre>
+	
+$name您好，
+
+ #if($flag)
+ 　 　 　您$tr_date申请拜访$grp_name的$hst_name的预约已成功，请妥善保存您的预约码$code，以便在自助访客终端发卡时使用；
+#else
+　 　 您$tr_date申请拜访$grp_name的$hst_name的因$reason不成功，请再次预约。
+#end
+
+
+   ——感谢您使用浙大网新访客预约系统！
+</pre>
+</body>
+</html>

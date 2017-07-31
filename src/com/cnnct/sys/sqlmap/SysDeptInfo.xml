@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<!-- 组织机构模型手工映射SQL语句 -->
+<sqlMap>
+    <typeAlias alias="dto" type="org.eredlab.g4.ccl.datastructure.impl.BaseDto"/>
+    <typeAlias alias="userInfo" type="com.cnnct.sys.vo.UserInfoVo"/>
+    <typeAlias alias="menuVo" type="com.cnnct.sys.web.tag.vo.MenuVo"/>
+
+	<!-- 查询部门的数量性质 -->
+	<select id="queryNatures4dept" parameterClass="dto" resultClass="dto" remapResults="true">
+		select code_id,field,field_name,code,code_desc,edit_mode,flag,state,sortno,case when b.checked='1' then '1'
+			else '0' end as checked
+		from sys_code_info a left join 
+			(select distinct nature,1 as checked from sys_dept_nature
+			where dept_id in (select dept_id from sys_dept_info 
+			start with dept_id = #dept_id#
+			connect by prior dept_id = parent_id)
+			)b  on  a.code = b.nature
+	   order by sortno
+	</select>
+	<insert id="insertNatures4dept" parameterClass="dto">
+		insert into sys_dept_nature(seq_no,dept_id,nature,opr_time,opr_id)
+		values(seq_sys_dept_nature.nextval,#dept_id#,#nature#,#opr_time#,#opr_id#)
+	</insert>
+	<delete id="deleteNatures4dept" parameterClass="dto">
+		delete sys_dept_nature where dept_id = #dept_id# 
+	</delete>
+	
+    <!-- 查询用户信息 -->
+
+    <!-- 根据用户所属部门编号查询部门对象 -->
+    <select id="querySysDeptinfoByDeptid" parameterClass="map" resultClass="dto" remapResults="true">
+        SELECT dept_id,dept_name
+        FROM SYS_DEPT_INFO WHERE dept_id = #dept_id# order by dept_id
+    </select>
+
+    <!-- 根据DTO查询部门信息 生成部门树 -->
+    <select id="querySysDeptItemsByDto" parameterClass="map" resultClass="dto">
+        SELECT
+        dept_id as id, dept_name as text, parent_id,leaf,sort_no
+        FROM SYS_DEPT_INFO
+        <dynamic prepend="WHERE">
+            <isNotEmpty prepend="AND" property="dept_id">
+                dept_id = #dept_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="parent_id">
+                parent_id = #parent_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="dept_name">
+                dept_name like '%$dept_name$%'
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="dept_state">
+                dept_state = '0'
+            </isNotEmpty>
+        </dynamic>
+        order by dept_id
+    </select>
+
+    <!-- 部门管理-部门列表 -->
+    <select id="querySysDeptsForManage" parameterClass="map" resultClass="dto" remapResults="true">
+        SELECT dept_id, dept_name, custom_id,lnk_name,address,lnk_telno,
+        (SELECT dept_name FROM SYS_DEPT_INFO WHERE dept_id = a.parent_id) AS parentdept_name,
+        (SELECT COUNT(*) FROM SYS_DEPT_INFO WHERE dept_id = a.dept_id) AS usercount,
+        (SELECT COUNT(*) FROM SYS_DEPT_INFO WHERE dept_id = a.dept_id) AS rolecount, parent_id, leaf,
+        sort_no,remark,grp_id
+        FROM SYS_DEPT_INFO a
+        where a.dept_state ='0'
+        <dynamic>
+            <isNotEmpty prepend="AND" property="dept_id">
+                a.dept_id like '$dept_id$%'
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="parent_id">
+                a.parent_id = #parent_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="dept_name">
+                a.dept_name like '%$dept_name$%'
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="queryParam">
+                a.dept_name like '%$queryParam$%'
+            </isNotEmpty>
+        </dynamic>
+		 ORDER BY dept_id ASC
+    </select>
+
+    <select id="querySysCountDeptName" parameterClass="map" resultClass="java.lang.Integer">
+        SELECT count(*) FROM SYS_DEPT_INFO WHERE dept_state = '0'
+        <dynamic>
+            <isNotEmpty prepend="AND" property="grp_id">
+                grp_id = '$grp_id$'
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="parent_id">
+                parent_id='$parent_id$'
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="dept_name">
+                dept_name='$dept_name$'
+            </isNotEmpty>
+        </dynamic>
+    </select>
+
+    <!-- 获取最大部门子节点编号 -->
+    <select id="getMaxSubDeptId" parameterClass="java.lang.String" resultClass="java.lang.String">
+        SELECT MAX(dept_id) FROM sys_dept_info
+        WHERE parent_id=#parent_id#
+    </select>
+
+    <!-- 插入一条部门记录 -->
+    <insert id="saveSysDeptItem" parameterClass="dto">
+        INSERT INTO SYS_DEPT_INFO (
+        grp_id,dept_id, dept_name, lnk_name,lnk_telno,address,parent_id,
+        custom_id,leaf, sort_no, remark,opr_id,indep_flag,opr_date)
+        VALUES (#grp_id#, #dept_id#, #dept_name#,#lnk_name#, #lnk_telno#, #address#, #parent_id#,#custom_id#,#leaf#,
+        #sort_no#, #remark#, #opr_id#,#indep_flag#,#opr_date#)
+    </insert>
+
+    <!-- 根据主键更新菜单 -->
+    <update id="updateSysDeptItem" parameterClass="dto">
+        UPDATE SYS_DEPT_INFO
+        <dynamic prepend="SET">
+            <isNotEmpty prepend="," property="dept_name">
+                dept_name = #dept_name#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="dept_state">
+                dept_state = #dept_state#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="custom_id">
+                custom_id = #custom_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="leaf">
+                leaf = #leaf#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="parent_id">
+                parent_id = #parent_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="sort_no">
+                sort_no = #sort_no#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="opr_id">
+                opr_id = #opr_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="opr_date">
+                opr_date = #opr_date#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="address">
+                address = #address#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="lnk_name">
+                lnk_name = #lnk_name#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="lnk_telno">
+                lnk_telno = #lnk_telno#
+            </isNotEmpty>
+            <isNotEmpty prepend="," property="remark">
+                remark = #remark#
+            </isNotEmpty>
+            <isEmpty prepend="," property="address">
+                address = #address#
+            </isEmpty>
+            <isEmpty prepend="," property="lnk_name">
+                lnk_name = #lnk_name#
+            </isEmpty>
+            <isEmpty prepend="," property="lnk_telno">
+                lnk_telno = #lnk_telno#
+            </isEmpty>
+            <isEmpty prepend="," property="remark">
+                remark = #remark#
+            </isEmpty>
+        </dynamic>
+        WHERE dept_id = #dept_id#
+    </update>
+
+    <select id="getSubDeptCountByParentId" parameterClass="map" resultClass="java.lang.Integer">
+        SELECT count(*) as count FROM SYS_DEPT_INFO a WHERE parent_id = #dept_id# and dept_state ='0'
+    </select>
+
+    <!-- 更新叶子节点 -->
+    <update id="updateLeafInSysDeptInfo" parameterClass="dto">
+        UPDATE SYS_DEPT_INFO SET leaf = #leaf# WHERE dept_id = #dept_id#
+    </update>
+
+    <!-- 删除角色授权表  -->
+    <delete id="deleteSysRoleMenuAuthByDeptId" parameterClass="map">
+        delete from sys_role_menuauth where
+        role_id in (select role_id from sys_role_info where dept_id like '$dept_id$%')
+    </delete>
+    <!-- 删除角色授权表  -->
+    <delete id="deleteSysRoleDataAuthByDeptId" parameterClass="map">
+        delete from sys_role_dataauth where
+        role_id in (select role_id from sys_role_info where dept_id like '$dept_id$%')
+    </delete>
+
+    <!-- 删除角色表  -->
+    <delete id="deleteSysRoleInfoByDeptId" parameterClass="map">
+        DELETE FROM sys_role_info WHERE role_id like '$dept_id$%'
+    </delete>
+
+    <!-- 删除人员表  -->
+    <delete id="deleteSysUserInfoByDeptId" parameterClass="map">
+        DELETE FROM sys_user_info WHERE dept_id like '$dept_id$%'
+    </delete>
+
+    <!-- 统计部门下子部门个数 -->
+    <select id="getSysSubDeptCntInDept" parameterClass="map" resultClass="java.lang.Integer">
+        select count(*) from SYS_DEPT_INFO where grp_id = #grp_id# and parent_id = #dept_id# and  dept_state != '1'
+    </select>
+    <!-- 统计部门下用户人数 -->
+    <select id="getSysUserCntInDept" parameterClass="map" resultClass="java.lang.Integer">
+        select count(*) from sys_user_info where grp_id = #grp_id# and dept_id = #dept_id# and state='0'
+    </select>
+
+    <update id="updateSysEadeptItem" parameterClass="dto">
+        UPDATE SYS_DEPT_INFO set dept_state = '1' WHERE dept_id like '$dept_id$%'
+    </update>
+
+    <!-- 根据用户所属部门编号查询部门对象 -->
+    <select id="queryDeptinfoByDeptid" parameterClass="map" resultClass="dto">
+        SELECT deptid,deptname
+        FROM eadept WHERE deptid = #deptid# order by deptid
+    </select>
+
+    <!-- 从部门信息表中获得dept_id -->
+    <select id="getDeptIdFromSysDept" parameterClass="map" resultClass="java.lang.String">
+        SELECT dept_id FROM sys_dept_info where grp_id = #grp_id# and dept_name=#dept_name#
+    </select>
+
+    <!-- 根据DTO查询部门信息 -->
+    <select id="queryDept4Import" parameterClass="map" resultClass="dto">
+        SELECT dept_id,getdeptnamebynum(dept_id,8) as deptnames,max(dept_name) as dept_name,max(b.grp_id) as grp_id
+        FROM sys_dept_info a left join sys_grps_info b on instr(a.dept_id,b.match_dept_id)=1
+        <dynamic prepend="WHERE">
+            <isNotEmpty prepend="AND" property="grp_id">
+                a.grp_id = '$grp_id$'
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="dept_name">
+                a.dept_name = '$dept_name$'
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="dept_id">
+                a.dept_id = '$dept_id$'
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="leaf">
+                a.leaf = '$leaf$'
+            </isNotEmpty>
+        </dynamic>
+        group by dept_id
+    </select>
+</sqlMap>

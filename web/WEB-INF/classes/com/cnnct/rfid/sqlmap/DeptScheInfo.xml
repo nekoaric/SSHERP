@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<!-- 资源模型手工映射SQL语句 -->
+<sqlMap>
+
+    <select id="getDeptScheInfo" parameterClass="dto" resultClass="dto" remapResults="true">
+        select a.dept_id,a.nature,a.complete_num,a.total_num,a.ord_seq_no,a.dept_name,
+        b.article,b.brand,b.order_date,b.cust_id from
+        (select a.dept_id,max(a.nature) as nature,sum(a.complete_num) as complete_num,sum(a.total_num) as total_num,
+        b.ord_seq_no,max(c.dept_name) as dept_name from dept_day_sche a
+        left join PROD_BAS_INFO b on a.product_id = b.product_id
+        left join sys_dept_info c on a.dept_id = c.dept_id
+        <dynamic prepend="where">
+            <isNotEmpty prepend="and" property="ord_seq_no">
+                b.ord_seq_no = #ord_seq_no#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="dept_id">
+                a.dept_id = #dept_id#
+            </isNotEmpty>
+        </dynamic>
+        group by b.ord_seq_no,a.dept_id) a
+        left join ord_bas_info b on a.ord_seq_no = b.seq_no
+    </select>
+
+    <select id="getDeptDayScheInfo" parameterClass="dto" resultClass="dto" remapResults="true">
+        select a.tr_date,a.dept_id,a.nature,a.day_num,a.complete_num,a.total_num,a.ord_seq_no,a.dept_name,
+        b.article,b.brand,b.order_date,b.cust_id from
+        (
+        select max(a.nature) as nature,sum(a.day_num) as day_num,sum(a.complete_num) as complete_num,
+        a.tr_date,a.dept_id,sum(a.total_num) as total_num ,b.ord_seq_no,max(c.dept_name) as dept_name
+        from dept_day_sche a
+        left join PROD_BAS_INFO b on a.product_id = b.product_id
+        left join sys_dept_info c on a.dept_id = c.dept_id
+        <dynamic prepend="where">
+            <isNotEmpty prepend="and" property="ord_seq_no">
+                b.ord_seq_no = #ord_seq_no#
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="dept_id">
+                a.dept_id = #dept_id#
+            </isNotEmpty>
+        </dynamic>
+        group by b.ord_seq_no,a.tr_date,a.dept_id) a
+        left join ord_bas_info b on a.ord_seq_no = b.seq_no
+        order by a.ord_seq_no,a.tr_date
+    </select>
+
+    <select id="getOrdBasInfoByDeptId" parameterClass="dto" resultClass="dto" remapResults="true">
+        select distinct a.seq_no,a.order_id,a.article,a.brand,a.order_date,a.cust_id,b.dept_id,b.dept_name
+        from (select a.product_id,b.seq_no,b.order_id,b.article,b.brand,b.order_date,b.cust_id  from prod_bas_info a
+            left join ord_bas_info b on a.ord_seq_no = b.seq_no) a
+        left join (select a.*,b.dept_name from dept_day_sche a left join sys_dept_info b
+            on a.dept_id = b.dept_id ) b on a.product_id = b.product_id
+        where b.dept_id like '$dept_id$%' and order_date between #startdate# and #enddate#
+    </select>
+</sqlMap>

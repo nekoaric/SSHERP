@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<sqlMap>
+    <typeAlias alias="dto"
+               type="org.eredlab.g4.ccl.datastructure.impl.BaseDto"/>
+
+    <!-- RFID	基本信息查询  -->
+    <select id="queryEpcDayListInfo" parameterClass="map" resultClass="dto" remapResults="true">
+        select a.seq_no,a.grp_id,a.tr_date,a.trm_no,a.epc,a.nature ,a.opr_id,a.opr_time,a.flag,a.ord_status,
+        a.dept_status,b.user_name as opr_name,c.ord_seq_no as order_id,c.article,c.cust_id,c.style_no,c.color,
+        c.in_length,c.waist,c.country
+        from epc_day_list a left join sys_user_info b on a.opr_id=b.user_id
+        left join
+        (select b.*,a.epc  from epc_prod_list a left join
+            (select a.prod_ord_seq,a.product_id,a.style_no,a.color,a.in_length,a.waist,a.country,
+            b.seq_no,b.article,b.cust_id, b.ord_seq_no from prod_bas_info a
+            left join prod_ord_info b on a.prod_ord_seq = b.prod_ord_seq)b
+            on a.product_id = b.product_id
+        ) c on a.epc = c.epc and a.prod_ord_seq = c.prod_ord_seq
+        <dynamic prepend="WHERE">
+        	<isNotEmpty prepend="AND" property="ord_seq_no">
+        		c.ord_seq_no = #ord_seq_no#
+        	</isNotEmpty>
+            <isNotEmpty prepend="AND" property="seq_no">
+                a.seq_no = #seq_no#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="tr_date">
+                a.tr_date = #tr_date#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="trm_no">
+                a.trm_no = #trm_no#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="epc">
+                a.epc = #epc#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="opr_id">
+                a.opr_id = #opr_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="opr_time">
+                a.opr_time = #opr_time#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="nature">
+                a.nature in ($nature$)
+            </isNotEmpty>
+        </dynamic>
+        order by a.seq_no
+    </select>
+
+    <select id="queryEpcDayListInfoForPageCount" parameterClass="map"
+            resultClass="java.lang.Integer">
+        SELECT count(*)
+        FROM epc_day_list
+        <dynamic prepend="WHERE">
+            <isNotEmpty prepend="AND" property="seq_no">
+                seq_no = #seq_no#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="tr_date">
+                tr_date = #tr_date#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="trm_no">
+                trm_no = #trm_no#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="epc">
+                epc = #epc#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="opr_id">
+                opr_id = #opr_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="opr_time">
+                opr_time = #opr_time#
+            </isNotEmpty>
+        </dynamic>
+    </select>
+
+    <!--  RFID电子标签	流程表记录 -->
+    <insert id="insertEpcDayListInfo" parameterClass="dto">
+        insert into epc_day_list
+        (seq_no,prod_ord_seq,tr_date,grp_id,trm_no,epc,tid,nature,opr_id,opr_time,flag)
+        values
+        (seq_epc_day_list_seq_no.nextval,#prod_ord_seq#,#tr_date#,#grp_id#,#trm_no#,#epc#,#tid#,#nature#,#opr_id#,#opr_time#,#flag#)
+    </insert>
+
+    <select id="getProdBasInfoByProdInfo" parameterClass="dto" resultClass="dto">
+        select a.product_id,case when a.real_num is null then 0 else a.real_num end as real_num,
+        case when a.ins_num is null then 0 else a.ins_num end as ins_num,
+        case when a.cut_num is null then 0 else a.cut_num end as cut_num,
+        a.style_no_seq_no,a.color_seq_no,a.cloth_size_seq_no
+        from prod_bas_info a
+        where a.prod_ord_seq = #prod_ord_seq# and a.style_no = #style_no# and a.country = #country#
+        and a.color = #color# and a.in_length = #in_length# and a.waist = #waist#
+    </select>
+
+    <select id="getProdBasInfoByProdOrdSeq" parameterClass="dto" resultClass="dto">
+        select a.prod_ord_seq,a.product_id,case when a.real_num is null then 0 else a.real_num end as real_num,
+        case when a.ins_num is null then 0 else a.ins_num end as ins_num,
+        case when a.cut_num is null then 0 else a.cut_num end as cut_num,
+        a.style_no_seq_no,a.color_seq_no,a.cloth_size_seq_no,
+        a.color,a.style_no,a.country,a.in_length,a.waist
+        from prod_bas_info a
+        where a.prod_ord_seq in ($prod_ord_seq$)
+    </select>
+	<!-- 修改epc,产品绑定状态 -->
+	<update id="updateEpcStatus" parameterClass="dto">
+		update epc_prod_list set state = #state# where nature in($status$)
+	</update>
+</sqlMap>

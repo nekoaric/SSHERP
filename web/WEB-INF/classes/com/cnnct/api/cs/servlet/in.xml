@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<Envelope>
+    <Header>
+        <system>
+            <para usr="1001"/>
+            <para pwd="111111"/>
+            <para funid="F00.00.00.00"/>
+        </system>
+    </Header>
+    <Body>
+        <business>
+            <para version="1.0"/>
+        </business>
+    </Body>
+</Envelope>
+        <!--
+        <?xml version="1.0"?>
+        <Envelope>
+            <Header>
+                <system>
+                    <para sessionID="FC6C6D1ED983EAB5E0E91E8A12F163BA" />
+                    <para pwd="111111" />
+                    <para funid="F00.00.00.00" />
+                </system>
+            </Header>
+            <Body>
+                <business>
+                    <para version="1.0" />
+                </business>
+            </Body>
+        </Envelope>
+        -->

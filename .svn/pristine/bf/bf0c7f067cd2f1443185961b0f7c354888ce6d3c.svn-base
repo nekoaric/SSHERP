@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<sqlMap>
+    <typeAlias alias="dto"
+               type="org.eredlab.g4.ccl.datastructure.impl.BaseDto"/>
+    <!--  查询部门对应的数结构  -->
+    <select id="queryGrpTreeInfo4deptid" parameterClass="map" resultClass="dto" remapResults="true">
+        select * from sys_grps_info 
+        where 
+	        match_dept_id in (select dept_id 
+		        from sys_dept_info start with dept_id = #dept_id#
+		        connect by prior parent_id = dept_id)
+    </select>
+    <!--  查询部门的树结构  -->
+    <select id="queryTreeDeptInfo4deptid" parameterClass="map" resultClass="dto" remapResults="true">
+        select * from sys_dept_info 
+        <isNotEmpty prepend="where" property="grpflag">
+            dept_id in (select match_dept_id from sys_grps_info)
+        </isNotEmpty>
+            start with dept_id = #dept_id#
+            connect by prior parent_id = dept_id
+    </select>
+    <!-- 根据查询班组部门分厂信息 -->
+    <select id="queryDept4OrdDayImport" parameterClass="map" resultClass="dto">
+        select a.team_no,a.name as team_name,b.dept_id,b.dept_name,b.grp_id,c.name as grp_name
+        from sys_team_info a
+        right join
+            (SELECT dept_id,max(dept_name) as dept_name,max(b.grp_id) as grp_id
+            FROM sys_dept_info a
+            right join sys_grps_info b on instr(a.dept_id,b.match_dept_id)=1
+            <dynamic prepend="WHERE">
+                <isNotEmpty prepend="AND" property="grp_id">
+                    a.grp_id = '$grp_id$'
+                </isNotEmpty>
+            </dynamic>
+            group by dept_id)b on a.dept_id = b.dept_id
+        inner join sys_grps_info c on b.grp_id = c.grp_id
+    </select>
+	<!-- 查询导入记录 -->
+	<select id="queryOrdDayList4Dto" parameterClass="map" resultClass="java.lang.Integer">
+		select count(*) from 
+		ord_day_list where 
+		tr_date = #tr_date#
+		<isNotEmpty property="grp_id" prepend="and">
+		  grp_id = #grp_id#
+		</isNotEmpty>
+		and order_id = #order_id#
+		<isNotEmpty property="dept_id" prepend="and">
+			dept_id = #dept_id#
+		</isNotEmpty>
+		<isNotEmpty property="team_no" prepend="and">
+			team_no = #team_no#
+		</isNotEmpty>
+		<!-- 取消序号条件 
+		<isNotEmpty property="sequence_number" prepend="and">
+		      sequence_number = #sequence_number#
+		</isNotEmpty>
+		 -->
+		and nature = #nature#
+		and amount= #amount#
+		and state = '0'
+	</select>
+    <!-- 查询订单记录流水信息-->
+    <select id="queryOrdDayList" parameterClass="map" resultClass="dto" remapResults="true">
+        select a.seq_no,a.grp_id,a.tr_date,a.nature,a.amount,a.opr_id,a.opr_time,a.state,
+        a.ord_status, a.dept_status,b.user_name as opr_name,c.order_id,c.style_no,d.name as grp_name,
+        e.dept_name,f.name as team_name
+        from ord_day_list a
+        left join sys_user_info b on a.opr_id=b.account
+        left join ord_bas_info c on a.order_id = c.order_id
+        left join sys_grps_info d on a.grp_id = d.grp_id
+        left join sys_dept_info e on a.dept_id = e.dept_id
+        left join sys_team_info f on a.team_no = f.team_no
+        <dynamic prepend="WHERE">
+            <isNotEmpty prepend="AND" property="seq_no">
+                a.seq_no = #seq_no#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="tr_date">
+                a.tr_date = #tr_date#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="opr_id">
+                a.opr_id = #opr_id#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="opr_time">
+                a.opr_time = #opr_time#
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="nature">
+                a.nature in ($nature$)
+            </isNotEmpty>
+            <isNotEmpty prepend="AND" property="order_id">
+                a.order_id like '%$order_id$%'
+            </isNotEmpty>
+        </dynamic>
+        order by a.seq_no
+    </select>
+
+    <!--  插入订单记录流水表 -->
+    <insert id="insertOrdDayList" parameterClass="dto">
+        insert into ord_day_list
+        (seq_no,tr_date,grp_id,dept_id,team_no,order_id,nature,amount,opr_id,opr_time,state,remark,
+        sequence_number,tr_time,cust_id,cust_name,style_no,article,mark,billno,destination,submit_name,sure_name,driver,day_count,total_count
+        ,detail_flag,a_class_count,b_class_count,c_class_count) 
+        values
+        (seq_ord_day_list_seq_no.nextval,#tr_date#,#grp_id#,#dept_id#,#team_no#,#order_id#,#nature#,#amount#,
+        #opr_id#,#opr_time#,#state#,#remark#,#sequence_number#,#tr_time#,#cust_id#,#cust_name#,#style_no#,#article#,
+        #mark#,#billno#,#destination#,#submit_name#,#sure_name#,#driver#,#day_count#,#total_count#
+        ,#detail_flag#,#a_class#,#b_class#,#c_class#)
+    </insert>
+	<!-- 查询客户信息 -->
+	<select id="queryCustInfoByCustName" parameterClass="map" resultClass="dto" remapResults="true">
+		select cust_name,cust_id from bas_cust_list where cust_name = #cust_name# and state = 0 
+	</select>
+	<!-- 删除重复数据  -->
+	<delete id="deleteOrdDayListReData" parameterClass="dto">
+		delete from ord_day_list where seq_no in (
+        select distinct a.seq_no from ord_day_list a,ord_day_list b
+        where (a.dept_id = b.dept_id or (a.dept_id is null and b.dept_id is null)) 
+                and (a.team_no = b.team_no or (a.team_no is null and b.team_no is null))
+                and a.tr_date = b.tr_date
+                and a.nature = b.nature
+                and a.grp_id = b.grp_id
+                and a.amount = b.amount
+                and a.order_id = b.order_id
+                and a.seq_no != b.seq_no  
+                and a.seq_no not in (   
+                   select min(a.seq_no) from ord_day_list a ,ord_day_list b
+                        where (a.dept_id = b.dept_id or(a.dept_id is null and b.dept_id is null)) 
+                        and a.tr_date = b.tr_date
+                        and (a.team_no = b.team_no or (a.team_no is null and b.team_no is null))
+                        and a.nature = b.nature
+                        and a.grp_id = b.grp_id
+                        and a.amount = b.amount
+                        and a.order_id = b.order_id
+                        and a.seq_no != b.seq_no
+                        group by a.dept_id,a.team_no,a.nature,a.grp_id,a.amount,a.tr_date,a.order_id)
+			)
+	</delete>
+	<!--	 清除统计数据 ，改变基本数据状态 -->
+	<statement id="resetOrdBaseData" parameterClass="dto">
+		begin
+			delete prod_day_sche;
+			delete prod_sche_list;
+			delete ord_day_sche;
+			delete ord_sche_list;
+			delete prodord_sche_list;
+			delete prodord_day_sche;
+			update ord_day_list set ord_status = '0',prodord_status = '0';
+			update epc_day_list set ord_status = '0',prodord_status = '0';
+		end;
+	</statement>
+	<!-- b品流转报表 -->
+	<select id="query4BReport" parameterClass="dto" resultClass="dto" remapResults="true">
+		select a.*,b.style_no,c.cust_name,b.article,b.fob_deal_date from
+			(
+			SELECT
+			    order_id,tr_date,nature,SUM(a_class_count) as a_count,SUM(b_class_count) as b_count,
+			    SUM(c_class_count) as c_count,SUM(amount) as total
+			FROM
+			    ord_day_list 
+			where 
+				nature IN('15','16','17') 
+			<dynamic>
+				<isNotEmpty prepend="and" property="startdate">
+					tr_date<![CDATA[>=]]>#startdate# 
+				</isNotEmpty>
+				<isNotEmpty prepend="and" property="enddate">
+					tr_date<![CDATA[<=]]>#enddate#
+				</isNotEmpty>
+			</dynamic>
+			GROUP BY tr_date,nature,order_id
+			ORDER  by tr_date DESC,nature ASC
+			) a left join prod_ord_info b on a.order_id = b.ord_seq_no 
+			    left join bas_cust_list c on b.cust_id=c.cust_id 
+        
+	</select>
+	<!-- B品库库存月报表 -->
+	<select id="BstorageByMonth" parameterClass="dto" resultClass="dto" remapResults="true">
+	SELECT    SUBSTR(tr_date,0,7) AS dateM,    SUM(total) as amount,sum(a_count) as a_amount,    nature
+FROM
+    (       SELECT a.*, b.style_no, c.cust_name, b.article, b.fob_deal_date
+        FROM
+            (SELECT order_id, tr_date, nature, SUM(a_class_count) AS a_count,
+                    SUM(b_class_count) AS b_count,
+                    SUM(c_class_count) AS c_count,
+                    SUM(amount)        AS total
+                FROM ord_day_list WHERE nature IN('16','17') 
+                <dynamic>
+				<isNotEmpty prepend="and" property="curdate">
+					tr_date like  '$curdate$%' 
+				</isNotEmpty>
+				</dynamic>
+                GROUP BY tr_date, nature, order_id 
+                ORDER BY
+                    tr_date DESC,
+                    nature ASC ) a
+        LEFT JOIN prod_ord_info b ON a.order_id = b.ord_seq_no LEFT JOIN bas_cust_list c
+        ON b.cust_id=c.cust_id )
+GROUP BY
+    SUBSTR(tr_date,0,7),
+    nature 
+order by dateM asc
+	</select>
+	<!-- B品库库存日报表 -->
+	<select id="BstorageByDay" parameterClass="dto" resultClass="dto" remapResults="true">
+	SELECT    tr_date AS dated,    SUM(total) as amount,sum(a_count) as a_amount ,   nature
+FROM
+    (       SELECT a.*, b.style_no, c.cust_name, b.article, b.fob_deal_date
+        FROM
+            (SELECT order_id, tr_date, nature, SUM(a_class_count) AS a_count,
+                    SUM(b_class_count) AS b_count,
+                    SUM(c_class_count) AS c_count,
+                    SUM(amount)        AS total
+                FROM ord_day_list WHERE nature IN('16','17') 
+                <dynamic>
+				<isNotEmpty prepend="and" property="curdate">
+					tr_date like  '$curdate$%' 
+				</isNotEmpty>
+				</dynamic>
+                GROUP BY tr_date, nature, order_id
+                ORDER BY
+                    tr_date DESC,
+                    nature ASC ) a
+        LEFT JOIN prod_ord_info b ON a.order_id = b.ord_seq_no LEFT JOIN bas_cust_list c
+        ON b.cust_id=c.cust_id )
+GROUP BY
+    tr_date,
+    nature 
+order by dated asc
+	</select>
+	
+	<insert id="insertStyleImgFile2" parameterClass="dto">
+		merge into style_img_info a using (select '1' from dual) t on 
+		(a.file_name=#file_name#) 
+		when matched then 
+		update set savePath=#savePath# 
+		when not matched then 
+		insert(
+		seq_no,style_no,file_name,alias_name,save_path)
+		values
+		(seq_style_img_info.nextval,#style_no#,#file_name#,#aliasName#,#savePath#)
+	</insert>
+	<insert id="insertStyleImgFile" parameterClass="dto">
+		insert into style_img_info(
+		seq_no,style_no,file_name,alias_name,save_path)
+		values
+		(seq_style_img_info.nextval,#style_no#,#file_name#,#aliasName#,#savePath#)
+	</insert>
+</sqlMap>

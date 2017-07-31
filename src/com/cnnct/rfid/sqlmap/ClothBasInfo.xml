@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+<!-- 资源模型手工映射SQL语句 -->
+<sqlMap>
+	<typeAlias alias="dto"
+		type="org.eredlab.g4.ccl.datastructure.impl.BaseDto" />
+	<!--查询服装信息 -->
+	<select id="queryClothBasInfo" parameterClass="map"
+		resultClass="dto">
+		SELECT a.seq_no,a.brand,a.classify,a.style,a.cloth_size,a.state
+		FROM bas_cloth_info a
+		order by a.seq_no
+	</select>
+	<select id="queryClothBasInfoCount" parameterClass="map"
+		resultClass="java.lang.Integer">
+		SELECT count(*) FROM BAS_CLOTH_INFO a
+	</select>
+	
+	
+		<!-- 获取服装信息最大序号信息 -->
+	<select id="getClothBas4SeqNo" parameterClass="map" resultClass="java.lang.Integer">
+		select max(seq_no) from BAS_CLOTH_INFO
+	</select>
+
+	<!-- 插入一条服装信息 -->
+	<insert id="insertClothBasInfo" parameterClass="dto">
+		INSERT INTO
+		BAS_CLOTH_INFO (seq_no,brand,classify,style,cloth_size,state)
+		VALUES (#seq_no#,#brand#,#classify#,#style#,#cloth_size#,#state#)
+	</insert>
+
+	<!-- 删除服装信息 -->
+	<update id="deleteClothBasInfo" parameterClass="dto">
+		UPDATE BAS_CLOTH_INFO
+		<dynamic prepend="SET">
+			<isNotEmpty prepend="," property="state">
+				state= #state#
+			</isNotEmpty>
+		</dynamic>
+		where seq_no=#seq_no#
+	</update>
+	<!-- 根据主键更新服装信息表 -->
+	<update id="updateClothBasInfo" parameterClass="dto">
+		UPDATE BAS_CLOTH_INFO
+		<dynamic prepend="SET">
+			<isNotEmpty prepend="," property="brand">
+				brand= #brand#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="classify">
+				classify=#classify#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="style">
+				style= #style#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="cloth_size">
+				cloth_size= #cloth_size#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="state">
+				state= #state#
+			</isNotEmpty>
+		</dynamic>
+		where seq_no=#seq_no#
+	</update>
+	
+</sqlMap>
